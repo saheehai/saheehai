@@ -103,7 +103,7 @@ function App() {
                 style={{
                   display: "inline-block",
                   maxWidth: "min(70%, 400px)",
-                  padding: "10px 16px",
+                  padding: "10px 16px 8px 16px",
                   backgroundColor:
                     message.sender === "user" ? "#6B4423" : "#F5E6D3",
                   color: message.sender === "user" ? "white" : "#5D4E37",
@@ -169,7 +169,7 @@ function App() {
       <div
         className="fixed left-0 right-0"
         style={{ 
-          bottom: "0px", 
+          bottom: "15px", 
           zIndex: 40,
           padding: "16px 16px 8px 16px"
         }}
@@ -181,7 +181,7 @@ function App() {
               backgroundColor: "#FFF8E7",
               border: "1px solid rgba(139, 107, 71, 0.2)",
               borderRadius: "30px",
-              padding: "7.2px"
+              padding: "3.9px"
             }}
           >
             <textarea
@@ -202,10 +202,10 @@ function App() {
                 overflowY: "auto",
                 lineHeight: "20px",
                 fontFamily: "inherit",
-                paddingTop: "18px",
-                paddingBottom: "8px",
-                paddingLeft: "14.4px",
-                paddingRight: "14.4px"
+                paddingTop: "17px",
+                paddingBottom: "2px",
+                paddingLeft: "20px",
+                paddingRight: "10px"
               }}
             />
             <button
@@ -229,7 +229,7 @@ function App() {
                     height: "28px",
                     backgroundColor: "#6B4423",
                     opacity: 0.05,
-                    transform: "translate(0, 7px)",
+                    transform: "translate(-2px, 7px)",
                     clipPath:
                       "polygon(3px 0%, 100% 0%, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0% 100%, 0% 3px)",
                     borderRadius: "8px 8px 8px 0px",
@@ -244,8 +244,8 @@ function App() {
                     backgroundColor: "#6B4423",
                     opacity: 0.5,
                     transform: isSending
-                      ? "translate(0, 7px)"
-                      : "translate(3.5px, 3.5px)",
+                      ? "translate(-2px, 7px)"
+                      : "translate(-0.5px, 3.5px)",
                     clipPath:
                       "polygon(3px 0%, 100% 0%, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0% 100%, 0% 3px)",
                     borderRadius: "8px 8px 8px 0px",
@@ -261,8 +261,8 @@ function App() {
                     backgroundColor: "#6B4423",
                     opacity: 1,
                     transform: isSending
-                      ? "translate(0, 7px)"
-                      : "translate(7px, 0)",
+                      ? "translate(-2px, 7px)"
+                      : "translate(3px, 0)",
                     clipPath:
                       "polygon(3px 0%, 100% 0%, 100% calc(100% - 3px), calc(100% - 3px) 100%, 0% 100%, 0% 3px)",
                     borderRadius: "8px 8px 8px 0px",
