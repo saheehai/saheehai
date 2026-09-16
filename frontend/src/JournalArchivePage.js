@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import SiteNav from "./components/SiteNav";
 import awsService from "./services/awsService";
 import { formatDate, formatMonthYear, getDateString } from "./utils/dateUtils";
-import Header from "./components/Header";
 import Alert from "./components/Alert";
 import EntryCard from "./components/EntryCard";
 import { COLORS, COMMON_STYLES } from "./utils/constants";
 
-function JournalArchivePage() {
+function JournalArchivePage({ onSignOut }) {
   const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,17 +83,19 @@ function JournalArchivePage() {
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
-      <Header
-        left={
-          <button onClick={() => navigate('/journal')} className="logout-button back-button">
-            <ChevronLeft size={16} />
-            Daily Journal
-          </button>
-        }
-        title="Past Journals"
-      />
+      <SiteNav signedIn onSignOut={onSignOut} />
 
       <div className="page-content page-content--wide">
+        <div className="page-heading">
+          <div>
+            <p className="page-heading__eyebrow">Journal</p>
+            <h1 className="page-heading__title">Past journals</h1>
+          </div>
+          <button type="button" onClick={() => navigate('/journal')} className="page-heading__action">
+            <ChevronLeft size={16} aria-hidden="true" />
+            Today's entry
+          </button>
+        </div>
         {loading ? (
           <div style={{ textAlign: 'center', color: COLORS.darkBrown, fontSize: '18px' }}>
             Loading your journals...

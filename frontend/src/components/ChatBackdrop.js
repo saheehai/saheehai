@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, FlaskConical } from 'lucide-react';
+import { ChevronDown, FlaskConical, Info, LogOut, Newspaper, NotebookPen } from 'lucide-react';
 import Header from './Header';
 import MessageBubble from './MessageBubble';
 import ChatInputBar from './ChatInputBar';
@@ -19,13 +19,27 @@ function ChatBackdrop() {
         left={<span className="app-header__brand">Saheeh AI</span>}
         right={
           <>
-            <span className="logout-button menu__trigger">
+            <span className="logout-button nav-btn menu__trigger">
               <FlaskConical size={15} />
-              <span className="menu__label">Experiments</span>
+              <span className="nav-btn__label">Experiments</span>
               <ChevronDown size={14} className="menu__caret" />
             </span>
-            <span className="logout-button">Journal</span>
-            <span className="logout-button">About Us</span>
+            <span className="logout-button nav-btn">
+              <NotebookPen size={15} />
+              <span className="nav-btn__label">Journal</span>
+            </span>
+            <span className="logout-button nav-btn">
+              <Newspaper size={15} />
+              <span className="nav-btn__label">News</span>
+            </span>
+            <span className="logout-button nav-btn">
+              <Info size={15} />
+              <span className="nav-btn__label">About Us</span>
+            </span>
+            <span className="logout-button nav-btn">
+              <LogOut size={15} />
+              <span className="nav-btn__label">Sign Out</span>
+            </span>
           </>
         }
       />

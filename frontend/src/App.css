@@ -11,7 +11,7 @@
     --brown-line: rgba(93, 78, 55, 0.2);
     --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1.3);
     /* Send button: how long the press sinks and how long the spring back takes. */
-    --send-press: 550ms;
+    --send-press: 825ms;
     --send-spring: 2.4s;
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -151,6 +151,12 @@ textarea:focus-visible {
     letter-spacing: 0.01em;
     padding: 8px 4px;
     white-space: nowrap;
+    text-decoration: none;
+    border-radius: 8px;
+}
+
+.nav-btn.is-active {
+    background-color: rgba(255, 248, 231, 0.16);
 }
 
 .logout-button {
@@ -249,6 +255,52 @@ textarea:focus-visible {
 }
 
 /* Pages */
+.page-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    margin-bottom: 20px;
+}
+
+.page-heading__eyebrow {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brown);
+}
+
+.page-heading__title {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.15;
+    font-weight: 600;
+    color: var(--dark-brown);
+}
+
+.page-heading__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 10px;
+    color: var(--brown);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.page-heading__action:hover {
+    border-color: var(--brown);
+    background-color: var(--light-cream);
+}
+
 .page-content {
     flex: 1;
     overflow-y: auto;
@@ -1311,6 +1363,15 @@ textarea::-webkit-scrollbar-thumb:hover {
         margin: 0 8px;
     }
 
+    /* Icons only: five buttons with labels do not fit beside the name. */
+    .nav-btn__label {
+        display: none;
+    }
+
+    .nav-btn {
+        padding: 8px 9px;
+    }
+
     .logout-button {
         padding: 8px 9px;
         font-size: 13px;
@@ -1350,19 +1411,11 @@ textarea::-webkit-scrollbar-thumb:hover {
 }
 
 @media (max-width: 480px) {
-    /* Icon-only trigger; the label would not fit beside the other buttons. */
-    .menu__label {
-        display: none;
+    .app-header__side {
+        gap: 2px;
     }
 
-    .hide-sm,
     .app-header__title--compact {
-        display: none;
-    }
-}
-
-@media (max-width: 400px) {
-    .app-header__brand {
         display: none;
     }
 }

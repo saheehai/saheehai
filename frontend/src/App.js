@@ -5,7 +5,6 @@ import {
   Route,
   Navigate,
   useLocation,
-  useNavigate,
 } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import "./App.css";
@@ -15,12 +14,11 @@ import JournalPage from "./JournalPage";
 import JournalArchivePage from "./JournalArchivePage";
 import AboutPage from "./components/AboutPage";
 import { NewsArticlePage, NewsListPage } from "./components/NewsPage";
-import Header from "./components/Header";
+import SiteNav from "./components/SiteNav";
 import DisclaimerModal from "./components/DisclaimerModal";
 import MessageBubble from "./components/MessageBubble";
 import TypingIndicator from "./components/TypingIndicator";
 import ChatInputBar from "./components/ChatInputBar";
-import ExperimentsMenu from "./components/ExperimentsMenu";
 import AuthPage from "./components/AuthPage";
 import * as cognito from "./services/cognitoService";
 import { usePersistedState } from "./hooks/usePersistedState";
@@ -40,7 +38,6 @@ const PERSONAL_LOCAL_KEYS = [
 ];
 
 function ChatPage({ onSignOut }) {
-  const navigate = useNavigate();
   // Persisted, not component state. ChatPage unmounts on navigation, so plain
   // useState reset this on every return from /journal and re-prompted the
   // disclaimer as though the visitor had been logged out.
@@ -111,13 +108,6 @@ function ChatPage({ onSignOut }) {
     setHasAcknowledged(true);
     setShowDisclaimer(false);
   }, [setHasAcknowledged]);
-
-  const handleSignOut = useCallback(() => {
-    onSignOut();
-    // Land on the front page, not on the sign-in card the guard would
-    // otherwise bounce a signed-out visitor of /chat to.
-    navigate('/', { replace: true });
-  }, [onSignOut, navigate]);
 
   const handleSend = useCallback(async () => {
     const userMessage = inputText.trim();
@@ -211,23 +201,7 @@ function ChatPage({ onSignOut }) {
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
-      <Header
-        left={<span className="app-header__brand">Saheeh AI</span>}
-        right={
-          <>
-            <ExperimentsMenu />
-            <button type="button" onClick={() => navigate('/journal')} className="logout-button">
-              Journal
-            </button>
-            <button type="button" onClick={() => navigate('/')} className="logout-button">
-              About Us
-            </button>
-            <button type="button" onClick={handleSignOut} className="logout-button">
-              Sign Out
-            </button>
-          </>
-        }
-      />
+      <SiteNav signedIn onSignOut={onSignOut} />
 
       <div className="chat-scroll" ref={scrollContainerRef}>
         <div className="max-w-3xl mx-auto">
@@ -318,8 +292,14 @@ function App() {
           path="/"
           element={<AboutPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
         />
-        <Route path="/news" element={<NewsListPage signedIn={isAuthenticated} />} />
-        <Route path="/news/:slug" element={<NewsArticlePage signedIn={isAuthenticated} />} />
+        <Route
+          path="/news"
+          element={<NewsListPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/news/:slug"
+          element={<NewsArticlePage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
         <Route path="/about" element={<Navigate to="/" replace />} />
         <Route path="/mission" element={<Navigate to="/" replace />} />
 
@@ -346,7 +326,7 @@ function App() {
           path="/journal"
           element={
             <RequireAuth authed={isAuthenticated}>
-              <JournalPage />
+              <JournalPage onSignOut={handleSignOut} />
             </RequireAuth>
           }
         />
@@ -354,7 +334,7 @@ function App() {
           path="/journal/archive"
           element={
             <RequireAuth authed={isAuthenticated}>
-              <JournalArchivePage />
+              <JournalArchivePage onSignOut={handleSignOut} />
             </RequireAuth>
           }
         />
