@@ -1,12 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, HeartHandshake, Stethoscope, UserRound } from 'lucide-react';
+import { HeartHandshake, LogIn, Stethoscope, UserRound } from 'lucide-react';
 import Header from './Header';
 import ExperimentsMenu from './ExperimentsMenu';
 
 /**
- * Public: reachable signed in or out. A nonprofit's "who we are" page should
- * not sit behind a login.
+ * The front page, signed in or out. A nonprofit's "who we are" should not sit
+ * behind a login, and it is where a first sign-in lands.
  */
 
 const SERVE = [
@@ -67,27 +67,28 @@ const VISION_ITEMS = [
   "Every individual has the tools to navigate life's challenges with resilience and clarity",
 ];
 
-function AboutPage({ signedIn }) {
+function AboutPage({ signedIn, onSignOut }) {
   const navigate = useNavigate();
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
       <Header
-        left={
-          signedIn ? (
-            <ExperimentsMenu />
-          ) : (
-            <button type="button" onClick={() => navigate('/')} className="logout-button back-button">
-              <ChevronLeft size={16} aria-hidden="true" />
-              Sign in
-            </button>
-          )
-        }
+        left={signedIn ? <ExperimentsMenu /> : <span className="app-header__brand">Saheeh AI</span>}
         title="About Us"
         right={
-          signedIn && (
-            <button type="button" onClick={() => navigate('/journal')} className="logout-button">
-              Journal
+          signedIn ? (
+            <>
+              <button type="button" onClick={() => navigate('/journal')} className="logout-button">
+                Journal
+              </button>
+              <button type="button" onClick={onSignOut} className="logout-button">
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => navigate('/signin')} className="logout-button">
+              <LogIn size={15} aria-hidden="true" />
+              Sign in
             </button>
           )
         }
@@ -208,13 +209,26 @@ function AboutPage({ signedIn }) {
           </div>
         </details>
 
-        {!signedIn && (
-          <section className="about-cta">
-            <button type="button" className="auth-submit about-cta__button" onClick={() => navigate('/')}>
-              Create an account
+        <section className="about-cta">
+          {signedIn ? (
+            <button type="button" className="auth-submit about-cta__button" onClick={() => navigate('/chat')}>
+              Open the chat
             </button>
-          </section>
-        )}
+          ) : (
+            <>
+              <button
+                type="button"
+                className="auth-submit about-cta__button"
+                onClick={() => navigate('/signin', { state: { mode: 'signUp' } })}
+              >
+                Create an account
+              </button>
+              <button type="button" className="auth-link about-cta__link" onClick={() => navigate('/signin')}>
+                I already have an account
+              </button>
+            </>
+          )}
+        </section>
 
         <p className="about-footnote">
           Saheeh AI is a wellness companion, not a therapist or medical professional. If you are

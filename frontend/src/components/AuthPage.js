@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Alert from './Alert';
 import FormInput from './FormInput';
 import ChatBackdrop from './ChatBackdrop';
@@ -48,7 +48,10 @@ const MODES = {
 };
 
 export default function AuthPage({ onAuthenticated }) {
-  const [mode, setMode] = useState('signIn');
+  const navigate = useNavigate();
+  const location = useLocation();
+  // "Create an account" on the front page opens straight onto sign-up.
+  const [mode, setMode] = useState(location.state?.mode === 'signUp' ? 'signUp' : 'signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
@@ -77,6 +80,13 @@ export default function AuthPage({ onAuthenticated }) {
     return null;
   }, [mode, password]);
 
+  // Back to wherever the guard sent them from; otherwise the front page, so
+  // a first sign-in lands on who we are rather than straight into the chat.
+  const finish = useCallback(() => {
+    onAuthenticated();
+    navigate(location.state?.from || '/', { replace: true });
+  }, [onAuthenticated, navigate, location.state]);
+
   const handleSubmit = useCallback(
     async (event) => {
       event.preventDefault();
@@ -89,13 +99,13 @@ export default function AuthPage({ onAuthenticated }) {
       try {
         if (mode === 'signIn') {
           await cognito.signIn(email, password);
-          onAuthenticated();
+          finish();
         } else if (mode === 'signUp') {
           if (passwordProblem) throw new Error(passwordProblem);
           const { confirmed } = await cognito.signUp(email, password);
           if (confirmed) {
             await cognito.signIn(email, password);
-            onAuthenticated();
+            finish();
           } else {
             go('confirm', `We sent a confirmation code to ${email}.`);
           }
@@ -104,7 +114,7 @@ export default function AuthPage({ onAuthenticated }) {
           // Sign in straight away rather than bouncing back to a form the
           // person has already filled in once.
           await cognito.signIn(email, password);
-          onAuthenticated();
+          finish();
         } else if (mode === 'forgot') {
           await cognito.forgotPassword(email);
           // Worded so it does not confirm whether the account exists.
@@ -113,7 +123,7 @@ export default function AuthPage({ onAuthenticated }) {
           if (passwordProblem) throw new Error(passwordProblem);
           await cognito.confirmNewPassword(email, code, password);
           await cognito.signIn(email, password);
-          onAuthenticated();
+          finish();
         }
       } catch (err) {
         if (err.needsConfirmation) {
@@ -125,7 +135,7 @@ export default function AuthPage({ onAuthenticated }) {
         setBusy(false);
       }
     },
-    [busy, mode, email, password, code, passwordProblem, onAuthenticated, go]
+    [busy, mode, email, password, code, passwordProblem, finish, go]
   );
 
   const resend = useCallback(async () => {
@@ -246,7 +256,7 @@ export default function AuthPage({ onAuthenticated }) {
             Saheeh AI is a wellness companion, not a therapist or medical professional. If you
             are in crisis, please contact your local emergency services or a crisis line.
             <br />
-            <Link to="/about" className="auth-footnote__link">
+            <Link to="/" className="auth-footnote__link">
               About Saheeh AI
             </Link>
           </p>

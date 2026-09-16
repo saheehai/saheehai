@@ -144,7 +144,7 @@ function JournalPage() {
             <button onClick={() => navigate('/journal/archive')} className="logout-button">
               Past Journals
             </button>
-            <button onClick={() => navigate('/about')} className="logout-button hide-sm">
+            <button onClick={() => navigate('/')} className="logout-button hide-sm">
               About Us
             </button>
           </>

@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
@@ -37,7 +38,7 @@ const PERSONAL_LOCAL_KEYS = [
   STORAGE_KEYS.disclaimerAccepted,
 ];
 
-function ChatPage({ onSignedOut }) {
+function ChatPage({ onSignOut }) {
   const navigate = useNavigate();
   // Persisted, not component state. ChatPage unmounts on navigation, so plain
   // useState reset this on every return from /journal and re-prompted the
@@ -111,9 +112,11 @@ function ChatPage({ onSignedOut }) {
   }, [setHasAcknowledged]);
 
   const handleSignOut = useCallback(() => {
-    cognito.signOut();
-    onSignedOut();
-  }, [onSignedOut]);
+    onSignOut();
+    // Land on the front page, not on the sign-in card the guard would
+    // otherwise bounce a signed-out visitor of /chat to.
+    navigate('/', { replace: true });
+  }, [onSignOut, navigate]);
 
   const handleSend = useCallback(async () => {
     const userMessage = inputText.trim();
@@ -203,7 +206,7 @@ function ChatPage({ onSignedOut }) {
             <button type="button" onClick={() => navigate('/journal')} className="logout-button">
               Journal
             </button>
-            <button type="button" onClick={() => navigate('/about')} className="logout-button">
+            <button type="button" onClick={() => navigate('/')} className="logout-button">
               About Us
             </button>
             <button type="button" onClick={handleSignOut} className="logout-button">
@@ -252,6 +255,15 @@ function ChatPage({ onSignedOut }) {
   );
 }
 
+/** Sends a signed-out visitor to the sign-in card, remembering where they were headed. */
+function RequireAuth({ authed, children }) {
+  const location = useLocation();
+  if (!authed) {
+    return <Navigate to="/signin" replace state={{ from: location.pathname }} />;
+  }
+  return children;
+}
+
 function App() {
   // null while the stored session is being checked. Rendering AuthPage during
   // that check would flash a sign-in form at someone who is already signed in.
@@ -272,7 +284,8 @@ function App() {
     };
   }, []);
 
-  const handleSignedOut = useCallback(() => {
+  const handleSignOut = useCallback(() => {
+    cognito.signOut();
     PERSONAL_LOCAL_KEYS.forEach((key) => localStorage.removeItem(key));
     sessionStorage.removeItem(STORAGE_KEYS.chatScrollPosition);
     setIsAuthenticated(false);
@@ -287,22 +300,51 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Public either way: who we are should not sit behind a login. */}
-        <Route path="/about" element={<AboutPage signedIn={isAuthenticated} />} />
-        <Route path="/mission" element={<Navigate to="/about" replace />} />
+        {/* The front page is who we are, signed in or not. */}
+        <Route
+          path="/"
+          element={<AboutPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route path="/about" element={<Navigate to="/" replace />} />
+        <Route path="/mission" element={<Navigate to="/" replace />} />
 
-        {isAuthenticated ? (
-          <>
-            <Route path="/" element={<ChatPage onSignedOut={handleSignedOut} />} />
-            <Route path="/journal" element={<JournalPage />} />
-            <Route path="/journal/archive" element={<JournalArchivePage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </>
-        ) : (
-          // Any other path keeps its URL, so a deep link lands where it was
-          // pointed once the person has signed in.
-          <Route path="*" element={<AuthPage onAuthenticated={handleAuthenticated} />} />
-        )}
+        <Route
+          path="/signin"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/" replace />
+            ) : (
+              <AuthPage onAuthenticated={handleAuthenticated} />
+            )
+          }
+        />
+
+        <Route
+          path="/chat"
+          element={
+            <RequireAuth authed={isAuthenticated}>
+              <ChatPage onSignOut={handleSignOut} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/journal"
+          element={
+            <RequireAuth authed={isAuthenticated}>
+              <JournalPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/journal/archive"
+          element={
+            <RequireAuth authed={isAuthenticated}>
+              <JournalArchivePage />
+            </RequireAuth>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
