@@ -17,6 +17,18 @@ DEVICE_TOKEN_SECRET = os.environ.get("DEVICE_TOKEN_SECRET", "")
 TURNSTILE_SECRET = os.environ.get("TURNSTILE_SECRET", "")
 TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
+# siteverify echoes back the action and hostname the token was issued for.
+# Checking `success` alone is not enough: a token minted by some other widget
+# surface, or on a host that merely shares the sitekey, would otherwise pass.
+TURNSTILE_ACTION = os.environ.get("TURNSTILE_ACTION", "session")
+TURNSTILE_ALLOWED_HOSTNAMES = [
+    host.strip()
+    for host in os.environ.get(
+        "TURNSTILE_ALLOWED_HOSTNAMES", "saheeh.ai,www.saheeh.ai,localhost,127.0.0.1"
+    ).split(",")
+    if host.strip()
+]
+
 # How long a device token stays valid. Short enough that a leaked token
 # expires on its own, long enough that a visitor is not re-challenged
 # constantly mid-conversation.

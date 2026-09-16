@@ -140,3 +140,68 @@ class TestTurnstile:
 
         monkeypatch.setattr(auth.urllib.request, "urlopen", explode)
         assert auth.verify_turnstile("some-token") is False
+
+    @staticmethod
+    def _siteverify_returning(payload):
+        """Stand in for Cloudflare's siteverify response."""
+
+        class FakeResponse:
+            def read(self):
+                return json.dumps(payload).encode()
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        return lambda *args, **kwargs: FakeResponse()
+
+    def test_accepts_a_good_token(self, monkeypatch):
+        monkeypatch.setattr(
+            auth.urllib.request,
+            "urlopen",
+            self._siteverify_returning(
+                {"success": True, "action": "session", "hostname": "saheeh.ai"}
+            ),
+        )
+        assert auth.verify_turnstile("good") is True
+
+    def test_rejects_unsuccessful_verification(self, monkeypatch):
+        monkeypatch.setattr(
+            auth.urllib.request,
+            "urlopen",
+            self._siteverify_returning({"success": False, "error-codes": ["invalid-input"]}),
+        )
+        assert auth.verify_turnstile("bad") is False
+
+    def test_rejects_a_token_minted_for_another_action(self, monkeypatch):
+        """success alone is not enough: the action must match too."""
+        monkeypatch.setattr(
+            auth.urllib.request,
+            "urlopen",
+            self._siteverify_returning(
+                {"success": True, "action": "some-other-surface", "hostname": "saheeh.ai"}
+            ),
+        )
+        assert auth.verify_turnstile("replayed") is False
+
+    def test_rejects_a_token_solved_on_another_host(self, monkeypatch):
+        monkeypatch.setattr(
+            auth.urllib.request,
+            "urlopen",
+            self._siteverify_returning(
+                {"success": True, "action": "session", "hostname": "evil.example"}
+            ),
+        )
+        assert auth.verify_turnstile("wrong-host") is False
+
+    def test_allows_localhost_for_development(self, monkeypatch):
+        monkeypatch.setattr(
+            auth.urllib.request,
+            "urlopen",
+            self._siteverify_returning(
+                {"success": True, "action": "session", "hostname": "localhost"}
+            ),
+        )
+        assert auth.verify_turnstile("dev") is True

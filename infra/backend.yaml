@@ -18,6 +18,21 @@ Parameters:
     NoEcho: true
     Description: Cloudflare Turnstile secret key, verified server-side.
 
+  TurnstileAction:
+    Type: String
+    Default: session
+    Description: >-
+      Action name the widget is rendered with. siteverify echoes it back and
+      the handler requires a match, so a token minted for another surface
+      cannot be replayed against /session.
+
+  TurnstileAllowedHostnames:
+    Type: CommaDelimitedList
+    Default: saheeh.ai,www.saheeh.ai,localhost,127.0.0.1
+    Description: >-
+      Hostnames siteverify may report for a token. Checking this stops a
+      token solved on some other host sharing the sitekey from being used.
+
   DeviceTokenSecret:
     Type: String
     NoEcho: true
@@ -89,6 +104,8 @@ Resources:
         Variables:
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           TURNSTILE_SECRET: !Ref TurnstileSecret
+          TURNSTILE_ACTION: !Ref TurnstileAction
+          TURNSTILE_ALLOWED_HOSTNAMES: !Join [',', !Ref TurnstileAllowedHostnames]
           DEVICE_TOKEN_SECRET: !Ref DeviceTokenSecret
           CHAT_TABLE: !Ref ChatTableName
           JOURNAL_TABLE: !Ref JournalTableName

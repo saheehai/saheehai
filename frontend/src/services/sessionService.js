@@ -13,6 +13,10 @@
 const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
 const SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || '';
 
+// Echoed back by siteverify and checked server-side, so a token minted for
+// some other surface cannot be replayed against /session.
+const ACTION = 'session';
+
 const STORAGE_KEY = 'saheehAI_deviceToken';
 // Renew a little early rather than letting a request fail on a just-expired token.
 const RENEW_MARGIN_SECONDS = 300;
@@ -73,6 +77,7 @@ async function solveChallenge() {
     if (widgetId === null) {
       widgetId = turnstile.render(challengeContainer(), {
         sitekey: SITE_KEY,
+        action: ACTION,
         // Stays out of the way unless the visitor actually looks suspicious.
         appearance: 'interaction-only',
         callback: (token) => settle(resolve)(token),
@@ -84,7 +89,7 @@ async function solveChallenge() {
     }
 
     try {
-      turnstile.execute(widgetId, { sitekey: SITE_KEY });
+      turnstile.execute(widgetId, { sitekey: SITE_KEY, action: ACTION });
     } catch (err) {
       reject(err);
     }

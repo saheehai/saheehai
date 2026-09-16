@@ -134,7 +134,20 @@ def verify_turnstile(turnstile_token: str, remote_ip: str | None = None) -> bool
         # Fail closed. A Cloudflare outage must not become an open API.
         return False
 
-    return bool(result.get("success"))
+    if not result.get("success"):
+        return False
+
+    # siteverify echoes the action and hostname the token was issued under.
+    # Without these checks a token minted against a different surface, or on
+    # another host sharing the sitekey, would be accepted here.
+    if config.TURNSTILE_ACTION and result.get("action") != config.TURNSTILE_ACTION:
+        return False
+
+    hostname = result.get("hostname")
+    if config.TURNSTILE_ALLOWED_HOSTNAMES and hostname not in config.TURNSTILE_ALLOWED_HOSTNAMES:
+        return False
+
+    return True
 
 
 def source_ip(event: dict) -> str:
