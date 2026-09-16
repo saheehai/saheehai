@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { HeartHandshake, Stethoscope, UserRound } from 'lucide-react';
 import SiteNav from './SiteNav';
+import LegalLinks from './LegalLinks';
 
 /**
  * The front page, signed in or out. A nonprofit's "who we are" should not sit
@@ -203,10 +204,18 @@ function AboutPage({ signedIn, onSignOut }) {
           </section>
         )}
 
-        <p className="about-footnote">
-          Saheeh AI is a wellness companion, not a therapist or medical professional. If you are
-          in crisis, please contact your local emergency services or a crisis line.
-        </p>
+        <footer className="about-footer">
+          <p className="about-footnote">
+            The wellness companion in Experiments is a beta feature and an AI, not a therapist
+            or medical professional. If you are in crisis, please contact your local emergency
+            services or a crisis line.
+          </p>
+          <LegalLinks />
+          <p className="about-footer__org">
+            © {new Date().getFullYear()} Saheeh AI, a Texas nonprofit. 501(c)(3) recognition
+            pending.
+          </p>
+        </footer>
       </main>
     </div>
   );

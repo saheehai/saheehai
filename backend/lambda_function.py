@@ -21,6 +21,7 @@ from botocore.exceptions import ClientError
 
 import auth
 import config
+import geo
 import storage
 
 logger = logging.getLogger()
@@ -207,9 +208,10 @@ def lambda_handler(event, context):
     method = request.get("method", "")
     path = request.get("path", "") or event.get("rawPath", "")
 
-    # Stage prefixes should not reach here (the API is deployed on $default),
-    # but strip a known one rather than 404 if that changes.
-    for prefix in ("/prod",):
+    # /api is the path the site's CloudFront distribution forwards under;
+    # /prod is a stage prefix that should not reach here (the API is deployed
+    # on $default) but is stripped rather than 404'd if that changes.
+    for prefix in ("/api", "/prod"):
         if path.startswith(prefix + "/"):
             path = path[len(prefix) :]
     path = path.rstrip("/") or "/"
@@ -228,6 +230,21 @@ def lambda_handler(event, context):
         # rejects an invalid or absent token before we are invoked.
         logger.error("Request passed the authorizer with no usable subject claim")
         return _error(401, "Authentication required")
+
+    # Every authenticated route is an Experiment (chat, journal), and none of
+    # them may be used from a place that prohibits AI-delivered mental health
+    # services. Checked after authentication so an anonymous probe learns
+    # nothing about the list, and before any quota is spent.
+    try:
+        geo.enforce(event)
+    except geo.UntrustedOrigin:
+        logger.warning("Refused %s %s: request did not come through CloudFront", method, path)
+        return _error(403, "Requests must come through saheeh.ai")
+    except geo.RegionBlocked as exc:
+        # 451 Unavailable For Legal Reasons. User id and region are both
+        # logged so a complaint can be checked against what we saw.
+        logger.info("Refused %s %s for %s: region %s is blocked", method, path, user_id, exc.region)
+        return _respond(451, {"error": str(exc), "code": "region_blocked", "region": exc.region})
 
     try:
         return handler(event, user_id)

@@ -9,6 +9,13 @@
  * The widget stays hidden unless Cloudflare actually wants the visitor to do
  * something. A "Verify you are human" box parked in the corner of every page
  * is noise for the large majority who are cleared silently.
+ *
+ * Each attempt renders its own widget and removes it once a token has been
+ * handed back. A widget left alive keeps working after the token is consumed:
+ * Cloudflare re-runs the challenge whenever the token expires (every few
+ * minutes), and any re-run that wants interaction pops the overlay over
+ * whatever page the person is on. Tokens are single-use and short-lived, so
+ * there is nothing to keep around anyway.
  */
 
 const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
@@ -81,38 +88,51 @@ export function solveChallenge() {
   return loadScript().then(
     (turnstile) =>
       new Promise((resolve, reject) => {
-        const settle = (fn) => (value) => {
-          hide();
+        // Only one attempt at a time. A second call while the first is still
+        // running would otherwise render over the top of it.
+        if (widgetId !== null) {
           try {
-            turnstile.reset(widgetId);
+            turnstile.remove(widgetId);
           } catch {
             /* widget already gone */
           }
+          widgetId = null;
+        }
+
+        const settle = (fn) => (value) => {
+          hide();
+          try {
+            turnstile.remove(widgetId);
+          } catch {
+            /* widget already gone */
+          }
+          widgetId = null;
           fn(value);
         };
 
-        if (widgetId === null) {
+        try {
           widgetId = turnstile.render(container(), {
             sitekey: SITE_KEY,
             action: ACTION,
             appearance: 'interaction-only',
+            // Run only when asked, and never again on our behalf. The token
+            // is consumed the moment it arrives, so a refreshed one would
+            // have nobody to go to and would only surface as a stray prompt.
+            execution: 'execute',
+            'refresh-expired': 'never',
+            'refresh-timeout': 'never',
             // Reveal the overlay only for a challenge that genuinely needs
             // the visitor; a silent pass should never be visible.
             'before-interactive-callback': show,
             'after-interactive-callback': hide,
             callback: (token) => settle(resolve)(token),
             'error-callback': () => settle(reject)(new Error('Verification failed')),
+            'expired-callback': () => settle(reject)(new Error('Verification expired')),
             'timeout-callback': () => settle(reject)(new Error('Verification timed out')),
           });
-        } else {
-          turnstile.reset(widgetId);
-        }
-
-        try {
-          turnstile.execute(widgetId, { sitekey: SITE_KEY, action: ACTION });
+          turnstile.execute(widgetId);
         } catch (err) {
-          hide();
-          reject(err);
+          settle(reject)(err);
         }
       })
   );

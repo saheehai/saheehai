@@ -4,6 +4,7 @@ import Alert from './Alert';
 import FormInput from './FormInput';
 import ChatBackdrop from './ChatBackdrop';
 import * as cognito from '../services/cognitoService';
+import { STORAGE_KEYS } from '../utils/constants';
 
 /**
  * Sign in, sign up, email confirmation and password reset.
@@ -57,7 +58,18 @@ export default function AuthPage({ onAuthenticated }) {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [notice, setNotice] = useState(null);
+  const [notice, setNotice] = useState(() => {
+    // Set by the idle timer just before it signed the person out.
+    try {
+      if (sessionStorage.getItem(STORAGE_KEYS.idleSignedOut)) {
+        sessionStorage.removeItem(STORAGE_KEYS.idleSignedOut);
+        return 'You were signed out after a period of inactivity. Sign in to continue.';
+      }
+    } catch {
+      /* nothing to explain */
+    }
+    return null;
+  });
 
   const copy = MODES[mode];
 

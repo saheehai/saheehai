@@ -1436,3 +1436,121 @@ textarea::-webkit-scrollbar-thumb:hover {
         transition: none !important;
     }
 }
+
+/* Legal */
+.legal-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 10px;
+    margin-top: 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--medium-brown);
+}
+
+.legal-links a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.legal-links a:hover {
+    color: var(--brown);
+}
+
+.legal-links--modal {
+    margin: -12px 0 24px;
+    color: var(--cream);
+    opacity: 0.85;
+}
+
+.legal-links--modal a:hover {
+    color: var(--cream);
+    opacity: 1;
+}
+
+.about-footer {
+    padding-top: 24px;
+    border-top: 1px solid var(--brown-line);
+}
+
+.about-footer__org {
+    margin: 10px 0 0;
+    font-size: 12px !important;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--medium-brown);
+    opacity: 0.85;
+}
+
+.modal-beta {
+    margin: -12px 0 20px;
+    color: var(--cream);
+    font-size: 14px;
+    line-height: 1.5;
+    opacity: 0.9;
+}
+
+.menu__tag {
+    margin-left: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    opacity: 0.7;
+}
+
+.legal__toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-top: 18px;
+    font-size: 14px;
+}
+
+.legal__toc a {
+    color: var(--brown);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.legal__section {
+    margin-top: 40px;
+    padding-top: 28px;
+    border-top: 1px solid var(--brown-line);
+    /* Keep the heading clear of the fixed header when jumping by hash. */
+    scroll-margin-top: calc(var(--header-h) + 12px);
+}
+
+.legal__title {
+    margin: 0 0 12px;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 600;
+    color: var(--brown);
+}
+
+.legal .news-article__body {
+    font-size: 16px;
+}
+
+.legal .news-article__body h3 {
+    margin: 26px 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--brown);
+}
+
+.legal .news-article__body h4 {
+    margin: 18px 0 4px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--brown);
+}
+
+.legal__quoted {
+    padding: 4px 0 4px 18px;
+    border-left: 3px solid var(--brown-line);
+    font-size: 15px !important;
+    opacity: 0.92;
+}
