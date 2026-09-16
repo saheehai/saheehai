@@ -117,4 +117,6 @@ export const STORAGE_KEYS = {
   journalDraft: 'journalDraft',
   rateLimit: 'saheehAI_rateLimit',
   disclaimerAccepted: 'saheehAI_disclaimerAccepted',
+  lastActive: 'saheehAI_lastActive',
+  idleSignedOut: 'saheehAI_idleSignedOut',
 };

@@ -145,6 +145,7 @@ Under **Settings → Secrets and variables → Actions**:
 | Secret | Purpose |
 |---|---|
 | `TURNSTILE_SECRET` | Cloudflare Turnstile secret key, verified by the PreSignUp trigger. |
+| `ORIGIN_VERIFY_SECRET` | Random string CloudFront attaches to API requests as `x-origin-verify`. Leave unset until the `/api/*` behavior exists (see below); once set, the API refuses anything that did not come through CloudFront. |
 
 Delete any legacy `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` secrets once
 OIDC is confirmed working. They are a standing liability.
@@ -200,3 +201,59 @@ unknown paths but keeps the 404 status. The CloudFront distribution rewrites
 
 **Deploy fails with "Repository variable X is not set."** Add it under
 Settings → Secrets and variables → Actions → Variables.
+
+
+## Putting the API behind CloudFront
+
+The browser currently calls the API Gateway URL directly. Routing it through
+the site's CloudFront distribution instead does three things: API calls
+become same-origin (`https://saheeh.ai/api/...`), CloudFront adds the
+viewer's country and US state to every request, and the function can refuse
+requests that did not come through the edge.
+
+The geographic restriction on the Experiments (`backend/geo.py`,
+`backend/blocked_regions.json`) depends on those headers. Until this is
+wired up every request is "unknown" and is allowed through (logged as such),
+so the code can ship first and the edge follow.
+
+The distribution (`E1OJ7HUYX27R2J`) is console-managed, so this is a
+one-time manual change. The backend stack creates the two policies it needs
+and prints their ids as outputs.
+
+1. Deploy the backend so `ApiCachePolicyId`, `ApiOriginRequestPolicyId` and
+   `ApiOriginDomain` exist in the stack outputs.
+2. Generate a secret and store it as the `ORIGIN_VERIFY_SECRET` repository
+   secret: `openssl rand -hex 32`.
+3. In CloudFront, on the distribution:
+   - **Add an origin.** Domain: the `ApiOriginDomain` output. Protocol:
+     HTTPS only. Add a custom header `x-origin-verify` with the secret.
+   - **Add a behavior.** Path pattern `/api/*`, the new origin, viewer
+     protocol HTTPS only, allowed methods GET/HEAD/OPTIONS/PUT/POST/PATCH/
+     DELETE, cache policy `saheehai-backend-api-no-cache`, origin request
+     policy `saheehai-backend-api-origin`, no response headers policy.
+4. Redeploy the backend (a push to `main` touching `backend/**` or
+   `infra/**`, or a manual run) so the function picks up the secret.
+5. Set the `API_ENDPOINT` repository variable to `https://saheeh.ai/api`
+   and redeploy the frontend.
+6. Check `/journal` and the chat work, then set the `GEO_BLOCK_UNKNOWN`
+   repository variable to `true` if you want unresolved locations refused
+   rather than allowed.
+
+To undo: clear `ORIGIN_VERIFY_SECRET`, point `API_ENDPOINT` back at the
+execute-api URL, redeploy both. The behavior can stay.
+
+## Geographic restriction
+
+Where the Experiments are refused is data, not code:
+`backend/blocked_regions.json`. Each entry is a country code, optionally a
+state or province code, and the name shown to the person refused. Editing
+the file and merging is enough; the deploy workflow picks it up.
+
+**The list needs regular review.** State laws on AI-delivered mental health
+services moved quickly in 2025 and are still moving in 2026. The file
+carries a `next_review` date; when you review it, update the date. The
+informational site is never affected by this list.
+
+The check returns HTTP 451 with a readable message. It runs after
+authentication (an anonymous probe learns nothing about the list) and before
+any quota is spent.

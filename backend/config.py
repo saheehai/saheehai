@@ -25,6 +25,23 @@ TURNSTILE_ALLOWED_HOSTNAMES = [
     if host.strip()
 ]
 
+# --- Edge ------------------------------------------------------------------
+
+# Shared secret CloudFront attaches to every request it forwards to the API
+# (an origin custom header). When set, requests without it are refused, which
+# is what makes the CloudFront geo headers trustworthy: nobody can reach the
+# function except through the distribution. Empty until the /api/* behavior
+# is wired up.
+ORIGIN_VERIFY_SECRET = os.environ.get("ORIGIN_VERIFY_SECRET", "")
+
+# Where the Experiments are refused. See blocked_regions.json.
+BLOCKED_REGIONS_FILE = os.environ.get("BLOCKED_REGIONS_FILE", "")
+
+# What to do when the viewer's country or state cannot be determined. Off
+# while the edge is being wired up (every request would be unknown);
+# consider turning it on once CloudFront is in front of the API.
+GEO_BLOCK_UNKNOWN = os.environ.get("GEO_BLOCK_UNKNOWN", "false").lower() in ("1", "true", "yes")
+
 # --- CORS ------------------------------------------------------------------
 
 # Exact origin, never "*". A wildcard here is what let any page on the

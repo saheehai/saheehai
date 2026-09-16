@@ -9,7 +9,9 @@ import { ChevronDown, FlaskConical, MessageCircle } from 'lucide-react';
  * a top-level button so new experiments can join the list without the header
  * growing a button each time.
  */
-const ITEMS = [{ label: 'Chat', to: '/chat', Icon: MessageCircle }];
+// Everything in here is beta, and says so: the companion is a secondary
+// feature, not the product, and nobody should mistake it for care.
+const ITEMS = [{ label: 'Chat', tag: 'beta', to: '/chat', Icon: MessageCircle }];
 
 function ExperimentsMenu({ active = false }) {
   const navigate = useNavigate();
@@ -51,7 +53,7 @@ function ExperimentsMenu({ active = false }) {
 
       {open && (
         <div className="menu__panel" role="menu">
-          {ITEMS.map(({ label, to, Icon }) => (
+          {ITEMS.map(({ label, tag, to, Icon }) => (
             <button
               key={to}
               type="button"
@@ -64,6 +66,7 @@ function ExperimentsMenu({ active = false }) {
             >
               <Icon size={16} aria-hidden="true" />
               {label}
+              {tag && <span className="menu__tag">({tag})</span>}
             </button>
           ))}
         </div>

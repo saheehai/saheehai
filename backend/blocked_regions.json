@@ -1,0 +1,41 @@
+{
+  "_readme": [
+    "Places where the Experiments (the AI wellness companion and the journal) are refused.",
+    "The informational site is never affected by this list: it is served from S3 and never reaches the API.",
+    "Each entry names a country (ISO 3166-1 alpha-2). Add `region` (ISO 3166-2 subdivision code, e.g. IL) to block one state or province; omit it to block the whole country.",
+    "`name` is shown to the person being refused, so keep it readable. `reason` and `since` are for us.",
+    "REVIEW THIS LIST REGULARLY. State laws on AI-delivered mental health services are changing quickly in 2026: several states passed bans or disclosure rules in 2025 and more bills are moving. Check at least quarterly, and whenever a new law is reported. Set `next_review` when you do.",
+    "Changing this file needs no code change, but it does need a backend deploy (merge to main)."
+  ],
+  "next_review": "2026-12-16",
+  "blocked": [
+    {
+      "country": "US",
+      "region": "IL",
+      "name": "Illinois",
+      "reason": "Wellness and Oversight for Psychological Resources Act (HB 1806, 2025) prohibits AI from providing therapy or psychotherapy services.",
+      "since": "2025-08-01"
+    },
+    {
+      "country": "US",
+      "region": "NV",
+      "name": "Nevada",
+      "reason": "AB 406 (2025) prohibits AI systems from being offered as providing professional mental or behavioral health care.",
+      "since": "2025-07-01"
+    },
+    {
+      "country": "US",
+      "region": "RI",
+      "name": "Rhode Island",
+      "reason": "Added at the organization's direction on 2026-09-16 as a state restricting AI-delivered therapy. Confirm the governing statute at the next review.",
+      "since": "2026-09-16"
+    },
+    {
+      "country": "US",
+      "region": "ME",
+      "name": "Maine",
+      "reason": "Added at the organization's direction on 2026-09-16 as a state restricting AI-delivered therapy. Confirm the governing statute at the next review.",
+      "since": "2026-09-16"
+    }
+  ]
+}

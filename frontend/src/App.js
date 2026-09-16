@@ -13,6 +13,7 @@ import rateLimitService from "./services/rateLimitService";
 import JournalPage from "./JournalPage";
 import JournalArchivePage from "./JournalArchivePage";
 import AboutPage from "./components/AboutPage";
+import LegalPage from "./components/LegalPage";
 import { NewsArticlePage, NewsListPage } from "./components/NewsPage";
 import SiteNav from "./components/SiteNav";
 import DisclaimerModal from "./components/DisclaimerModal";
@@ -22,6 +23,7 @@ import ChatInputBar from "./components/ChatInputBar";
 import AuthPage from "./components/AuthPage";
 import * as cognito from "./services/cognitoService";
 import { usePersistedState } from "./hooks/usePersistedState";
+import { useIdleSignOut } from "./hooks/useIdleSignOut";
 import { useScrollToBottom } from "./hooks/useScrollToBottom";
 import { splitIntoChunks } from "./utils/textUtils";
 import { GREETING_MESSAGE, STORAGE_KEYS, TYPING_DELAY_MS } from "./utils/constants";
@@ -35,6 +37,7 @@ const PERSONAL_LOCAL_KEYS = [
   STORAGE_KEYS.conversationId,
   STORAGE_KEYS.journalDraft,
   STORAGE_KEYS.disclaimerAccepted,
+  STORAGE_KEYS.lastActive,
 ];
 
 function ChatPage({ onSignOut }) {
@@ -280,6 +283,18 @@ function App() {
 
   const handleAuthenticated = useCallback(() => setIsAuthenticated(true), []);
 
+  // Automatic logoff. A tab left open on a shared device should not go on
+  // showing someone's journal; the sign-in card explains what happened.
+  const handleIdle = useCallback(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEYS.idleSignedOut, "1");
+    } catch {
+      /* the sign-out still happens */
+    }
+    handleSignOut();
+  }, [handleSignOut]);
+  useIdleSignOut(isAuthenticated === true, handleIdle);
+
   if (isAuthenticated === null) {
     return <div className="app-booting" aria-busy="true" />;
   }
@@ -300,6 +315,12 @@ function App() {
           path="/news/:slug"
           element={<NewsArticlePage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
         />
+        <Route
+          path="/legal"
+          element={<LegalPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route path="/privacy" element={<Navigate to="/legal#privacy" replace />} />
+        <Route path="/terms" element={<Navigate to="/legal#terms" replace />} />
         <Route path="/about" element={<Navigate to="/" replace />} />
         <Route path="/mission" element={<Navigate to="/" replace />} />
 

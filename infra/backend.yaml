@@ -33,6 +33,27 @@ Parameters:
       Hostnames siteverify may report for a token. Checking this stops a
       token solved on some other host sharing the sitekey from being used.
 
+  OriginVerifySecret:
+    Type: String
+    NoEcho: true
+    Default: ''
+    Description: >-
+      Shared secret the site's CloudFront distribution attaches to API
+      requests as an x-origin-verify custom origin header. When set, the
+      function refuses any request without it, so the CloudFront viewer
+      country/region headers it relies on for the geographic restriction
+      cannot be forged by calling API Gateway directly. Leave empty until
+      the /api/* behavior on the distribution is wired up (see DEPLOYMENT.md).
+
+  GeoBlockUnknown:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: >-
+      Refuse the Experiments when the viewer's country or state cannot be
+      determined. Keep false until the API is behind CloudFront, or every
+      request is "unknown".
+
   ChatTableName:
     Type: String
     Default: saheeh_chat_history
@@ -189,6 +210,26 @@ Resources:
         ThrottlingBurstLimit: 20
         ThrottlingRateLimit: 10
         DetailedMetricsEnabled: true
+      # Audit trail: who called what, when, from where, with what result.
+      # Deliberately no request or response body, so the log holds no chat
+      # or journal content. `user` is the Cognito subject, never an email.
+      # HIPAA 45 CFR 164.312(b) calls this "audit controls"; it is also
+      # what lets an abuse report be traced to an account.
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: >-
+          {"requestId":"$context.requestId","time":"$context.requestTime",
+          "ip":"$context.identity.sourceIp","userAgent":"$context.identity.userAgent",
+          "user":"$context.authorizer.claims.sub","method":"$context.httpMethod",
+          "route":"$context.routeKey","status":"$context.status",
+          "latencyMs":"$context.responseLatency","bytes":"$context.responseLength",
+          "error":"$context.error.message","authError":"$context.authorizer.error"}
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${AWS::StackName}-access'
+      RetentionInDays: !Ref LogRetentionDays
 
   # --- Function ------------------------------------------------------------
 
@@ -206,6 +247,8 @@ Resources:
           JOURNAL_TABLE: !Ref JournalTableName
           QUOTA_TABLE: !Ref QuotaTable
           DAILY_MESSAGE_QUOTA: !Ref DailyMessageQuota
+          ORIGIN_VERIFY_SECRET: !Ref OriginVerifySecret
+          GEO_BLOCK_UNKNOWN: !Ref GeoBlockUnknown
       Events:
         Chat:
           Type: HttpApi
@@ -216,6 +259,17 @@ Resources:
         JournalList:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /journal, Method: GET }
+        # The same routes under /api, which is the prefix the site's
+        # CloudFront distribution forwards; the handler strips it.
+        ApiChat:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/chat, Method: POST }
+        ApiJournalSave:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/journal, Method: POST }
+        ApiJournalList:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/journal, Method: GET }
       Policies:
         # Scoped deliberately. The previous role carried BedrockFullAccess,
         # BedrockMarketplaceAccess, and three DynamoDB full-access policies.
@@ -245,6 +299,58 @@ Resources:
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-api'
       RetentionInDays: !Ref LogRetentionDays
+
+  # --- Edge ----------------------------------------------------------------
+
+  # Policies for the /api/* behavior on the site's CloudFront distribution.
+  # The distribution itself is console-managed, so the behavior is attached
+  # by hand (DEPLOYMENT.md, "Putting the API behind CloudFront"); these two
+  # policies are what it is attached with. Routing the API through the edge
+  # is what gives the function CloudFront's viewer country and state headers
+  # for the geographic restriction, and it makes API calls same-origin.
+
+  ApiCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${AWS::StackName}-api-no-cache'
+        Comment: API responses are never cached; Authorization must be forwarded.
+        DefaultTTL: 0
+        MinTTL: 0
+        MaxTTL: 1
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: false
+          EnableAcceptEncodingBrotli: false
+          # CloudFront drops Authorization on GET/HEAD unless the cache
+          # policy names it. Listing it here is what lets GET /journal work.
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers: [Authorization]
+          CookiesConfig:
+            CookieBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: all
+
+  ApiOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub '${AWS::StackName}-api-origin'
+        Comment: Forward the viewer's country and state, never the Host header.
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          # Host is deliberately absent: API Gateway routes on its own host.
+          Headers:
+            - CloudFront-Viewer-Country
+            - CloudFront-Viewer-Country-Region
+            - Content-Type
+            - Origin
+            - Accept
+            - User-Agent
+        CookiesConfig:
+          CookieBehavior: none
+        QueryStringsConfig:
+          QueryStringBehavior: all
 
   # --- Storage -------------------------------------------------------------
 
@@ -285,6 +391,16 @@ Outputs:
 
   FunctionName:
     Value: !Ref ApiFunction
+
+  ApiOriginDomain:
+    Description: Origin domain for the /api/* CloudFront behavior.
+    Value: !Sub '${Api}.execute-api.${AWS::Region}.amazonaws.com'
+
+  ApiCachePolicyId:
+    Value: !Ref ApiCachePolicy
+
+  ApiOriginRequestPolicyId:
+    Value: !Ref ApiOriginRequestPolicy
 
   QuotaTableName:
     Value: !Ref QuotaTable
