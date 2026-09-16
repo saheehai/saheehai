@@ -175,6 +175,10 @@ Resources:
                   - dynamodb:*
                   - logs:*
                   - wafv2:*
+                  # cognito-idp:CreateUserPool has no resource-level
+                  # permissions, so this cannot be scoped to one pool. The
+                  # role is reachable only from main via OIDC.
+                  - cognito-idp:*
                 Resource: '*'
               - Sid: ManageBackendRoles
                 Effect: Allow
