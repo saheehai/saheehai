@@ -1,0 +1,97 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'infra/backend.yaml'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: SAM build and deploy
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify backend exists
+        # Until the Lambda source is recovered from AWS there is nothing to
+        # deploy. Fail loudly rather than silently deploying an empty stack.
+        run: |
+          if [ ! -d backend ] || [ ! -f infra/backend.yaml ]; then
+            echo "::error::backend/ or infra/backend.yaml is missing."
+            echo "Recover the Lambda source before enabling this workflow."
+            exit 1
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-session-name: gha-deploy-backend-${{ github.run_id }}
+
+      - name: SAM build
+        run: sam build --template infra/backend.yaml
+
+      - name: SAM deploy
+        run: |
+          sam deploy \
+            --stack-name "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
+            --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --resolve-s3 \
+            --parameter-overrides \
+              "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
+              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
+              "DeviceTokenSecret=${{ secrets.DEVICE_TOKEN_SECRET }}"
+
+      - name: Report endpoint
+        run: |
+          endpoint=$(aws cloudformation describe-stacks \
+            --stack-name "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
+            --output text)
+          echo "API endpoint: $endpoint"
+          echo "### Backend deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Endpoint: \`$endpoint\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "If this changed, update the \`API_ENDPOINT\` repository variable." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify unauthenticated calls are rejected
+        # The whole point of the hardening. If an anonymous POST to /chat
+        # succeeds, the abuse vector is open again - fail the deploy loudly.
+        run: |
+          endpoint=$(aws cloudformation describe-stacks \
+            --stack-name "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiEndpoint'].OutputValue" \
+            --output text)
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 \
+            -X POST "$endpoint/chat" \
+            -H 'Content-Type: application/json' \
+            -d '{"user_id":"ci-probe","message":"ci probe"}')
+          echo "Unauthenticated POST /chat -> $code"
+          case "$code" in
+            401|403) echo "Correctly rejected." ;;
+            *) echo "::error::Expected 401/403 but got $code - endpoint is unprotected."; exit 1 ;;
+          esac

@@ -1,0 +1,7 @@
+# Deliberately empty.
+#
+# The only runtime dependency is boto3, which the Lambda python3.13 runtime
+# already provides. Listing it here would make `sam build` vendor a second
+# copy into the deployment package for no benefit.
+#
+# Development and test dependencies live in requirements-dev.txt.

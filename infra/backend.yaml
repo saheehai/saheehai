@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >-
+  Saheeh AI backend: HTTP API, Lambda, and the request-quota table.
+  Deployed alongside the existing console-managed stack rather than importing
+  it, so the live site is untouched until DNS/config is pointed at this API.
+
+Parameters:
+  AllowedOrigin:
+    Type: String
+    Default: https://saheeh.ai
+    Description: >-
+      Exact browser origin permitted by CORS. Never "*" - a wildcard is what
+      allowed any page on the internet to drive the previous API.
+
+  TurnstileSecret:
+    Type: String
+    NoEcho: true
+    Description: Cloudflare Turnstile secret key, verified server-side.
+
+  TurnstileAction:
+    Type: String
+    Default: session
+    Description: >-
+      Action name the widget is rendered with. siteverify echoes it back and
+      the handler requires a match, so a token minted for another surface
+      cannot be replayed against /session.
+
+  TurnstileAllowedHostnames:
+    Type: CommaDelimitedList
+    Default: saheeh.ai,www.saheeh.ai,localhost,127.0.0.1
+    Description: >-
+      Hostnames siteverify may report for a token. Checking this stops a
+      token solved on some other host sharing the sitekey from being used.
+
+  DeviceTokenSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: >-
+      HMAC key signing device tokens. Must be at least 32 random bytes.
+      Rotating it invalidates every issued token, logging all visitors out.
+
+  ChatTableName:
+    Type: String
+    Default: saheeh_chat_history
+    Description: Existing table, referenced rather than managed by this stack.
+
+  JournalTableName:
+    Type: String
+    Default: saheeh_journal
+    Description: Existing table, referenced rather than managed by this stack.
+
+  DailyMessageQuota:
+    Type: Number
+    Default: 50
+    Description: Messages per identity per day, enforced in DynamoDB.
+
+  LogRetentionDays:
+    Type: Number
+    Default: 30
+    Description: >-
+      The previous log group had no retention, so every chat message and
+      journal entry persisted in CloudWatch indefinitely.
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 45
+    MemorySize: 256
+    Architectures: [arm64]
+
+Resources:
+  # --- API -----------------------------------------------------------------
+
+  Api:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: $default
+      CorsConfiguration:
+        AllowOrigins: [!Ref AllowedOrigin]
+        AllowHeaders: [content-type, authorization]
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowCredentials: false
+        MaxAge: 300
+      # A blunt backstop beneath the per-identity quota. AWS WAF cannot be
+      # attached to an HTTP API (it supports REST APIs, CloudFront, and ALB
+      # only), so stage throttling is the equivalent control here.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+        DetailedMetricsEnabled: true
+
+  # --- Function ------------------------------------------------------------
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-api'
+      CodeUri: ../backend/
+      Handler: lambda_function.lambda_handler
+      Description: Saheeh AI chat and journal API.
+      Environment:
+        Variables:
+          ALLOWED_ORIGIN: !Ref AllowedOrigin
+          TURNSTILE_SECRET: !Ref TurnstileSecret
+          TURNSTILE_ACTION: !Ref TurnstileAction
+          TURNSTILE_ALLOWED_HOSTNAMES: !Join [',', !Ref TurnstileAllowedHostnames]
+          DEVICE_TOKEN_SECRET: !Ref DeviceTokenSecret
+          CHAT_TABLE: !Ref ChatTableName
+          JOURNAL_TABLE: !Ref JournalTableName
+          QUOTA_TABLE: !Ref QuotaTable
+          DAILY_MESSAGE_QUOTA: !Ref DailyMessageQuota
+      Events:
+        Session:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /session, Method: POST }
+        Chat:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /chat, Method: POST }
+        JournalSave:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /journal, Method: POST }
+        JournalList:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /journal, Method: GET }
+      Policies:
+        # Scoped deliberately. The previous role carried BedrockFullAccess,
+        # BedrockMarketplaceAccess, and three DynamoDB full-access policies.
+        - Version: '2012-10-17'
+          Statement:
+            - Sid: InvokeOneModel
+              Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/openai.gpt-oss-120b-1:0'
+            - Sid: ReadWriteOwnTables
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:Query
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ChatTableName}'
+                - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${JournalTableName}'
+                - !GetAtt QuotaTable.Arn
+
+  # Declared explicitly so retention is set. An implicitly created log group
+  # never expires, which is how the old one accumulated user content forever.
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-api'
+      RetentionInDays: !Ref LogRetentionDays
+
+  # --- Storage -------------------------------------------------------------
+
+  # Only the quota table is created here. The chat and journal tables already
+  # exist and hold live data, so they are referenced by name; importing them
+  # is a separate, deliberate step.
+  QuotaTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-quota'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: quota_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: quota_key
+          KeyType: HASH
+      # Spent windows delete themselves; nothing here is worth keeping.
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+
+Outputs:
+  ApiEndpoint:
+    Description: >-
+      Base URL for the API. Set this as the API_ENDPOINT repository variable.
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: !Sub '${AWS::StackName}-api-endpoint'
+
+  FunctionName:
+    Value: !Ref ApiFunction
+
+  QuotaTableName:
+    Value: !Ref QuotaTable

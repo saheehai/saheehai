@@ -1,0 +1,6 @@
+# Local development and CI only — never packaged into the Lambda.
+# boto3 is listed here because it is NOT installed locally by default, while
+# in the deployed runtime it is provided by AWS.
+boto3>=1.34.0
+pytest>=8.0
+ruff>=0.6

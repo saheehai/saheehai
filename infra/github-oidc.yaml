@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  GitHub Actions OIDC trust for saheehai. Creates an IAM role that GitHub
+  Actions assumes via short-lived federated credentials, so no long-lived
+  AWS access keys are ever stored in GitHub secrets.
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Default: saheehai
+    Description: GitHub organisation or user that owns the repository.
+
+  GitHubRepo:
+    Type: String
+    Default: saheehai
+    Description: Repository name.
+
+  DeployBranch:
+    Type: String
+    Default: main
+    Description: Only this branch may assume the deploy role.
+
+  SiteBucketName:
+    Type: String
+    Default: saheeh.ai
+    Description: S3 bucket serving the static site.
+
+  CloudFrontDistributionId:
+    Type: String
+    Description: Distribution fronting the site, for cache invalidation.
+
+  BackendStackName:
+    Type: String
+    Default: saheehai-backend
+    Description: CloudFormation stack the backend pipeline manages.
+
+  CreateOIDCProvider:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: >-
+      Set to false if this account already has a GitHub OIDC provider. An
+      account may only have one provider per URL, so a second stack that
+      tries to create it will fail.
+
+Conditions:
+  ShouldCreateOIDCProvider: !Equals [!Ref CreateOIDCProvider, 'true']
+
+Resources:
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: ShouldCreateOIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      # GitHub's certificate chain thumbprints. AWS validates GitHub's OIDC
+      # against its own trust store, but CloudFormation still requires the field.
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  # Deploy role: assumable ONLY by workflows running on the deploy branch.
+  # Pull requests from forks therefore cannot reach AWS at all.
+  GitHubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${GitHubRepo}-github-actions-deploy'
+      Description: Assumed by GitHub Actions to deploy the site and backend.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - ShouldCreateOIDCProvider
+                - !Ref GitHubOIDCProvider
+                - !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com'
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'token.actions.githubusercontent.com:aud': sts.amazonaws.com
+              StringLike:
+                'token.actions.githubusercontent.com:sub': !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${DeployBranch}'
+      Policies:
+        - PolicyName: FrontendDeploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: SyncSiteBucket
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${SiteBucketName}'
+              - Sid: WriteSiteObjects
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${SiteBucketName}/*'
+              - Sid: InvalidateCache
+                Effect: Allow
+                Action:
+                  - cloudfront:CreateInvalidation
+                  - cloudfront:GetInvalidation
+                Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistributionId}'
+
+        - PolicyName: BackendDeploy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ManageBackendStack
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResource
+                  - cloudformation:DescribeStackResources
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:ListStackResources
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${BackendStackName}/*'
+                  - !Sub 'arn:${AWS::Partition}:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31'
+              - Sid: SamArtifactBucket
+                Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::aws-sam-cli-managed-*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::aws-sam-cli-managed-*/*'
+              - Sid: ManageBackendResources
+                Effect: Allow
+                Action:
+                  - lambda:*
+                  - apigateway:*
+                  - dynamodb:*
+                  - logs:*
+                  - wafv2:*
+                Resource: '*'
+              - Sid: ManageBackendRoles
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PassRole
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:TagRole
+                  - iam:UntagRole
+                # Constrained by path so CI cannot touch unrelated roles
+                # (notably, it cannot modify its own deploy role).
+                Resource: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${BackendStackName}-*'
+
+Outputs:
+  DeployRoleArn:
+    Description: >-
+      Set this as the GitHub Actions repository variable AWS_DEPLOY_ROLE_ARN.
+    Value: !GetAtt GitHubActionsDeployRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-deploy-role-arn'
