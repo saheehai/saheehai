@@ -1,4 +1,4 @@
-import SessionService from './sessionService';
+import { getIdToken } from './cognitoService';
 
 // No fallback endpoint on purpose. A hardcoded default gets baked into every
 // published bundle, which is how the previous API URL ended up public. A build
@@ -10,10 +10,6 @@ import SessionService from './sessionService';
 const API_ENDPOINT = (process.env.REACT_APP_API_ENDPOINT || '').replace(/\/+$/, '');
 
 class AWSService {
-  constructor() {
-    this.session = new SessionService(() => this.sessionEndpoint);
-  }
-
   get baseEndpoint() {
     if (!API_ENDPOINT) {
       throw new Error(
@@ -22,10 +18,6 @@ class AWSService {
       );
     }
     return API_ENDPOINT;
-  }
-
-  get sessionEndpoint() {
-    return `${this.baseEndpoint}/session`;
   }
 
   get chatEndpoint() {
@@ -39,12 +31,18 @@ class AWSService {
   /**
    * Authenticated request.
    *
-   * On a 401 the stored token is dropped and the call retried once: tokens
-   * expire, and the server may also have had its signing key rotated, neither
-   * of which should surface to the user as an error.
+   * getIdToken refreshes an expired id token using the refresh token, so a
+   * long session does not start failing mid-conversation. A null token means
+   * genuinely signed out, which the UI handles by showing the sign-in screen
+   * rather than by surfacing an error.
    */
-  async _request(url, options = {}, { retryOnAuthFailure = true } = {}) {
-    const token = await this.session.getToken();
+  async _request(url, options = {}) {
+    const token = await getIdToken();
+    if (!token) {
+      const error = new Error('Your session has ended. Please sign in again.');
+      error.status = 401;
+      throw error;
+    }
 
     const response = await fetch(url, {
       ...options,
@@ -54,11 +52,6 @@ class AWSService {
         ...options.headers,
       },
     });
-
-    if (response.status === 401 && retryOnAuthFailure) {
-      this.session.clear();
-      return this._request(url, options, { retryOnAuthFailure: false });
-    }
 
     if (!response.ok) {
       const detail = await response.json().catch(() => ({}));
@@ -73,10 +66,10 @@ class AWSService {
   /**
    * Send a chat message.
    *
-   * Note what is no longer sent: `user_id`, which the server now takes from
-   * the signed token, and `history`, which the server reads from storage.
-   * Both used to be caller-supplied, which let anyone claim another identity
-   * or forge the model's own prior turns.
+   * Note what is no longer sent: `user_id`, which the server takes from the
+   * verified Cognito token, and `history`, which the server reads from
+   * storage. Both used to be caller-supplied, which let anyone claim another
+   * identity or forge the model's own prior turns.
    */
   async sendMessage(message, conversationId = null) {
     try {

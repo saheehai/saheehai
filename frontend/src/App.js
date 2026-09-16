@@ -11,6 +11,8 @@ import Header from "./components/Header";
 import LoginModal from "./components/LoginModal";
 import MessageBubble from "./components/MessageBubble";
 import TypingIndicator from "./components/TypingIndicator";
+import AuthPage from "./components/AuthPage";
+import * as cognito from "./services/cognitoService";
 import { usePersistedState } from "./hooks/usePersistedState";
 import { useScrollToBottom } from "./hooks/useScrollToBottom";
 import { splitIntoChunks } from "./utils/textUtils";
@@ -20,12 +22,12 @@ const INITIAL_MESSAGES = [
   { id: 1, text: "Hello! I'm Saheeh AI. Ask me anything!", sender: "assistant" },
 ];
 
-function ChatPage() {
+function ChatPage({ onSignedOut }) {
   const navigate = useNavigate();
   // Persisted, not component state. ChatPage unmounts on navigation, so plain
   // useState reset this on every return from /journal and re-prompted the
   // disclaimer as though the visitor had been logged out.
-  const [isLoggedIn, setIsLoggedIn] = usePersistedState(
+  const [hasAcknowledged, setHasAcknowledged] = usePersistedState(
     STORAGE_KEYS.disclaimerAccepted,
     false
   );
@@ -84,19 +86,24 @@ function ChatPage() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  // setIsLoggedIn is a useState setter behind usePersistedState and so is
-  // stable, but eslint cannot see through the custom hook to prove it.
-  const handleLogin = useCallback(() => {
-    setIsLoggedIn(true);
+  // Acknowledging the crisis-resources disclaimer, not signing in - that is
+  // Cognito's job now. Persisted so it is asked once, not on every return
+  // from /journal. setIsLoggedIn is a stable useState setter, but eslint
+  // cannot see through the custom hook to prove it.
+  const handleAcknowledge = useCallback(() => {
+    setHasAcknowledged(true);
     setShowLoginModal(false);
-  }, [setIsLoggedIn]);
+  }, [setHasAcknowledged]);
 
-  const handleLogout = useCallback(() => setIsLoggedIn(false), [setIsLoggedIn]);
+  const handleSignOut = useCallback(() => {
+    cognito.signOut();
+    onSignedOut();
+  }, [onSignedOut]);
 
   const handleSend = useCallback(async () => {
     const userMessage = inputText.trim();
     if (!userMessage) return;
-    if (!isLoggedIn) {
+    if (!hasAcknowledged) {
       setShowLoginModal(true);
       return;
     }
@@ -169,7 +176,7 @@ function ChatPage() {
     } finally {
       setIsSending(false);
     }
-  }, [inputText, isLoggedIn, conversationId, setMessages, setConversationId, scrollToBottom]);
+  }, [inputText, hasAcknowledged, conversationId, setMessages, setConversationId, scrollToBottom]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -192,11 +199,8 @@ function ChatPage() {
             <button onClick={() => navigate('/journal')} className="logout-button">
               Journal
             </button>
-            <button
-              onClick={isLoggedIn ? handleLogout : () => setShowLoginModal(true)}
-              className="logout-button"
-            >
-              {isLoggedIn ? "Log Out" : "Log In"}
+            <button onClick={handleSignOut} className="logout-button">
+              Sign Out
             </button>
           </>
         }
@@ -255,17 +259,46 @@ function ChatPage() {
       </div>
 
       {showLoginModal && (
-        <LoginModal onClose={() => setShowLoginModal(false)} onConfirm={handleLogin} />
+        <LoginModal onClose={() => setShowLoginModal(false)} onConfirm={handleAcknowledge} />
       )}
     </div>
   );
 }
 
 function App() {
+  // null while the stored session is being checked. Rendering AuthPage during
+  // that check would flash a sign-in form at someone who is already signed in.
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    cognito
+      .getIdToken()
+      .then((token) => {
+        if (!cancelled) setIsAuthenticated(Boolean(token));
+      })
+      .catch(() => {
+        if (!cancelled) setIsAuthenticated(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSignedOut = useCallback(() => setIsAuthenticated(false), []);
+
+  if (isAuthenticated === null) {
+    return <div className="app-booting" aria-busy="true" />;
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage onAuthenticated={() => setIsAuthenticated(true)} />;
+  }
+
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<ChatPage />} />
+        <Route path="/" element={<ChatPage onSignedOut={handleSignedOut} />} />
         <Route path="/mission" element={<MissionPage />} />
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/journal/archive" element={<JournalArchivePage />} />

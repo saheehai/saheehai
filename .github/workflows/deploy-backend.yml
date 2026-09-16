@@ -93,7 +93,7 @@ jobs:
             -X POST "$endpoint/chat" \
             -H 'Content-Type: application/json' \
             -d '{"user_id":"ci-probe","message":"ci probe"}')
-          echo "Unauthenticated POST /chat -> $code"
+          echo "Unauthenticated POST /chat -> $code (expect 401: no Cognito token)"
           case "$code" in
             401|403) echo "Correctly rejected." ;;
             *) echo "::error::Expected 401/403 but got $code - endpoint is unprotected."; exit 1 ;;
