@@ -54,6 +54,19 @@ class RateLimitService {
     return { count: data.count, remaining: DAILY_RATE_LIMIT - data.count, limit: DAILY_RATE_LIMIT };
   }
 
+  /**
+   * Adopt the server's count.
+   *
+   * This counter is UX only — it exists so the remaining-messages hint is
+   * instant and so an over-limit send fails without a round trip. The server
+   * holds the real quota in DynamoDB, and clearing localStorage no longer
+   * grants extra requests. Where the two disagree, the server is right.
+   */
+  syncFromServer(quota) {
+    if (!quota || typeof quota.used !== 'number') return;
+    this._write({ date: getCurrentDate(), count: quota.used });
+  }
+
   reset() {
     localStorage.removeItem(STORAGE_KEYS.rateLimit);
   }

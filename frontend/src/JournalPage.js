@@ -99,9 +99,11 @@ function JournalPage() {
         .map((tag) => tag.trim())
         .filter((tag) => tag.length > 0);
 
+      // Only used for the optimistic local render below. The server stamps
+      // the authoritative timestamp; it no longer accepts one from the client.
       const timestamp = new Date().toISOString();
 
-      const result = await awsService.saveJournal(content, title, mood, tagArray, timestamp);
+      const result = await awsService.saveJournal(content, title, mood, tagArray);
 
       setSuccessMessage('Journal entry saved successfully!');
       setTodayEntry({

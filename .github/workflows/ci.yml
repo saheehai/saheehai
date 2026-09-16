@@ -41,6 +41,7 @@ jobs:
           # A placeholder is enough to compile. The real endpoint is injected
           # only at deploy time, so CI never needs production config.
           REACT_APP_API_ENDPOINT: https://ci.invalid/prod
+          REACT_APP_TURNSTILE_SITE_KEY: ci-placeholder-site-key
         run: npm run build
 
       - name: Guard against hardcoded API endpoints

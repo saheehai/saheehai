@@ -116,7 +116,9 @@ function ChatPage() {
     setInputText("");
 
     try {
-      const result = await awsService.sendMessage(userMessage, conversationId, false);
+      const result = await awsService.sendMessage(userMessage, conversationId);
+      // The server holds the real quota; keep the local hint in step with it.
+      rateLimitService.syncFromServer(result.quota);
       const aiResponse = result.response;
       const newConversationId = result.conversationId;
 
@@ -143,12 +145,18 @@ function ChatPage() {
 
       setTimeout(scrollToBottom, 100);
     } catch (err) {
-      console.error('Chat error:', err);
+      console.error('Chat error:', err.message);
       setIsTyping(false);
-      rateLimitService.rollback();
+
+      // A 429 is the server's quota, which is authoritative: the local hint
+      // was simply behind, so do not hand the attempt back.
+      if (err.status !== 429) {
+        rateLimitService.rollback();
+      }
+
       setMessages((prev) => [
         ...prev,
-        { id: Date.now() + 1, text: `Error: ${err.message}`, sender: "assistant" },
+        { id: Date.now() + 1, text: err.message, sender: "assistant" },
       ]);
     } finally {
       setIsSending(false);

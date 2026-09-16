@@ -63,7 +63,8 @@ jobs:
             --resolve-s3 \
             --parameter-overrides \
               "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
-              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}"
+              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
+              "DeviceTokenSecret=${{ secrets.DEVICE_TOKEN_SECRET }}"
 
       - name: Report endpoint
         run: |

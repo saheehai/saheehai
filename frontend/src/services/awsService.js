@@ -1,6 +1,4 @@
-import { generateUUID } from '../utils/textUtils';
-
-const USER_ID = 'anonymous';
+import SessionService from './sessionService';
 
 // No fallback endpoint on purpose. A hardcoded default gets baked into every
 // published bundle, which is how the previous API URL ended up public. A build
@@ -13,7 +11,7 @@ const API_ENDPOINT = (process.env.REACT_APP_API_ENDPOINT || '').replace(/\/+$/, 
 
 class AWSService {
   constructor() {
-    this.userId = USER_ID;
+    this.session = new SessionService(() => this.sessionEndpoint);
   }
 
   get baseEndpoint() {
@@ -26,6 +24,10 @@ class AWSService {
     return API_ENDPOINT;
   }
 
+  get sessionEndpoint() {
+    return `${this.baseEndpoint}/session`;
+  }
+
   get chatEndpoint() {
     return `${this.baseEndpoint}/chat`;
   }
@@ -34,68 +36,92 @@ class AWSService {
     return `${this.baseEndpoint}/journal`;
   }
 
-  async _request(url, options = {}) {
+  /**
+   * Authenticated request.
+   *
+   * On a 401 the stored token is dropped and the call retried once: tokens
+   * expire, and the server may also have had its signing key rotated, neither
+   * of which should surface to the user as an error.
+   */
+  async _request(url, options = {}, { retryOnAuthFailure = true } = {}) {
+    const token = await this.session.getToken();
+
     const response = await fetch(url, {
       ...options,
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options.headers,
+      },
     });
 
+    if (response.status === 401 && retryOnAuthFailure) {
+      this.session.clear();
+      return this._request(url, options, { retryOnAuthFailure: false });
+    }
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `API responded with status ${response.status}`);
+      const detail = await response.json().catch(() => ({}));
+      const error = new Error(detail.error || `API responded with status ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();
   }
 
-  async sendMessage(message, conversationId = null, loadHistory = false) {
+  /**
+   * Send a chat message.
+   *
+   * Note what is no longer sent: `user_id`, which the server now takes from
+   * the signed token, and `history`, which the server reads from storage.
+   * Both used to be caller-supplied, which let anyone claim another identity
+   * or forge the model's own prior turns.
+   */
+  async sendMessage(message, conversationId = null) {
     try {
-      const convId = conversationId || generateUUID();
+      const payload = { message };
+      if (conversationId) payload.conversation_id = conversationId;
+
       const data = await this._request(this.chatEndpoint, {
-        method: 'POST',
-        body: JSON.stringify({
-          user_id: this.userId,
-          conversation_id: convId,
-          message,
-          load_history: loadHistory,
-        }),
-      });
-      return {
-        response: data.response || 'No response from API',
-        conversationId: data.conversation_id || convId,
-        timestamp: data.timestamp,
-      };
-    } catch (error) {
-      console.error('Chat API error:', error);
-      throw new Error(error.message || 'Failed to get AI response');
-    }
-  }
-
-  async saveJournal(content, title = '', mood = '', tags = [], timestamp = null) {
-    try {
-      const payload = { user_id: this.userId, content, title, mood, tags };
-      if (timestamp) payload.timestamp = timestamp;
-
-      const data = await this._request(this.journalEndpoint, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
 
+      return {
+        response: data.response || 'No response from API',
+        conversationId: data.conversation_id || conversationId,
+        timestamp: data.timestamp,
+        quota: data.quota,
+      };
+    } catch (error) {
+      console.error('Chat API error:', error.message);
+      throw error;
+    }
+  }
+
+  async saveJournal(content, title = '', mood = '', tags = []) {
+    try {
+      const data = await this._request(this.journalEndpoint, {
+        method: 'POST',
+        body: JSON.stringify({ content, title, mood, tags }),
+      });
       return { entryId: data.entry_id, timestamp: data.timestamp };
     } catch (error) {
-      console.error('Journal save error:', error);
-      throw new Error(error.message || 'Failed to save journal entry');
+      console.error('Journal save error:', error.message);
+      throw error;
     }
   }
 
   async getJournalEntries(limit = 20) {
     try {
-      const url = `${this.journalEndpoint}?user_id=${this.userId}&limit=${limit}`;
-      const data = await this._request(url);
+      // No user_id parameter: the server scopes entries to the authenticated
+      // identity. Passing one used to return anybody's entries.
+      const data = await this._request(`${this.journalEndpoint}?limit=${limit}`);
       return data.entries || [];
     } catch (error) {
-      console.error('Journal fetch error:', error);
-      throw new Error(error.message || 'Failed to fetch journal entries');
+      console.error('Journal fetch error:', error.message);
+      throw error;
     }
   }
 }
