@@ -83,6 +83,23 @@ aws cloudformation deploy \
 If the account already has a GitHub OIDC provider, add
 `CreateOIDCProvider=false` — an account may only have one per URL.
 
+Two things about this role are easy to get wrong:
+
+**The OIDC subject depends on whether the job declares an environment.** A job
+with `environment: production` presents
+`repo:saheehai/saheehai:environment:production`, *not*
+`repo:saheehai/saheehai:ref:refs/heads/main`. The trust policy accepts both.
+The environment subject carries no branch, so what actually pins deploys to
+`main` is the deployment branch policy on the GitHub `production` environment
+(Settings → Environments → production → deployment branches). If you remove
+that restriction, any branch can deploy.
+
+**SAM artifacts go to a pre-made bucket.** `sam deploy --resolve-s3` would
+provision its own bucket via a managed stack, which requires the deploy role
+to hold `s3:CreateBucket`, `s3:TagResource` and `s3:DeleteBucket`. The bucket
+is instead created out of band and passed with `--s3-bucket`, so the role has
+Get/Put/List on that one bucket and no bucket-lifecycle rights at all.
+
 Then read the role ARN:
 
 ```bash
@@ -147,6 +164,15 @@ document.
 
 **CI fails on a warning.** Intentional — `CI=true` makes react-scripts treat
 warnings as errors. Fix the warning.
+
+**`sam build` fails with "Binary validation failed for python".** The workflow's
+Python must match the Lambda runtime — `sam build` shells out to a matching
+interpreter to install dependencies. Both are pinned to 3.13; changing the
+function runtime means changing `actions/setup-python` too.
+
+**Deep links 404 rather than 200.** S3 website hosting serves `index.html` for
+unknown paths but keeps the 404 status. The CloudFront distribution rewrites
+403/404 to `/index.html` with status 200. Both halves are needed.
 
 **Deploy fails with "Repository variable X is not set."** Add it under
 Settings → Secrets and variables → Actions → Variables.
