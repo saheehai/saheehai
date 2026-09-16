@@ -37,7 +37,10 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          # Must match the Lambda runtime: `sam build` shells out to a
+          # matching interpreter to install dependencies, and fails outright
+          # if one is not on PATH.
+          python-version: '3.13'
 
       - uses: aws-actions/setup-sam@v2
         with:

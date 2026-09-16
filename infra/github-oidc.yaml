@@ -20,6 +20,17 @@ Parameters:
     Default: main
     Description: Only this branch may assume the deploy role.
 
+  DeployEnvironment:
+    Type: String
+    Default: production
+    Description: >-
+      GitHub Actions environment the deploy jobs run in. A job that declares
+      an environment gets an OIDC subject of
+      `repo:<org>/<repo>:environment:<name>` INSTEAD of the ref-based subject,
+      so the trust policy must accept it. Restrict which branches may deploy
+      to this environment in GitHub (Settings > Environments > deployment
+      branches) - that, not the subject, is what pins it to main.
+
   SiteBucketName:
     Type: String
     Default: saheeh.ai
@@ -82,7 +93,11 @@ Resources:
               StringEquals:
                 'token.actions.githubusercontent.com:aud': sts.amazonaws.com
               StringLike:
-                'token.actions.githubusercontent.com:sub': !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${DeployBranch}'
+                'token.actions.githubusercontent.com:sub':
+                  # Jobs without an `environment:` present the ref subject.
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${DeployBranch}'
+                  # Jobs with `environment: production` present this one instead.
+                  - !Sub 'repo:${GitHubOrg}/${GitHubRepo}:environment:${DeployEnvironment}'
       Policies:
         - PolicyName: FrontendDeploy
           PolicyDocument:
