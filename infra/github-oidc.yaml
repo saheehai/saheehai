@@ -45,6 +45,14 @@ Parameters:
     Default: saheehai-backend
     Description: CloudFormation stack the backend pipeline manages.
 
+  SamArtifactBucket:
+    Type: String
+    Default: saheehai-sam-artifacts-979130301726
+    Description: >-
+      Pre-existing bucket holding SAM build artifacts. Created out of band so
+      CI never needs s3:CreateBucket, s3:TagResource or s3:DeleteBucket, which
+      `sam deploy --resolve-s3` would otherwise require.
+
   CreateOIDCProvider:
     Type: String
     Default: 'true'
@@ -147,17 +155,18 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${BackendStackName}/*'
                   - !Sub 'arn:${AWS::Partition}:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31'
-              - Sid: SamArtifactBucket
+              # Write-only access to one known bucket. No CreateBucket,
+              # TagResource or DeleteBucket anywhere in this role.
+              - Sid: UploadSamArtifacts
                 Effect: Allow
                 Action:
-                  - s3:CreateBucket
                   - s3:GetObject
                   - s3:PutObject
                   - s3:ListBucket
                   - s3:GetBucketLocation
                 Resource:
-                  - !Sub 'arn:${AWS::Partition}:s3:::aws-sam-cli-managed-*'
-                  - !Sub 'arn:${AWS::Partition}:s3:::aws-sam-cli-managed-*/*'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SamArtifactBucket}'
+                  - !Sub 'arn:${AWS::Partition}:s3:::${SamArtifactBucket}/*'
               - Sid: ManageBackendResources
                 Effect: Allow
                 Action:

@@ -63,7 +63,8 @@ jobs:
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
-            --resolve-s3 \
+            --s3-bucket "${{ vars.SAM_ARTIFACT_BUCKET || 'saheehai-sam-artifacts-979130301726' }}" \
+            --s3-prefix "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
             --parameter-overrides \
               "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
               "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
