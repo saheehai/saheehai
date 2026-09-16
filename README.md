@@ -14,9 +14,7 @@
 
 ## What this is
 
-Saheeh AI is a small wellness app: a compassionate conversation partner and a
-private daily journal. It is not a therapist and does not pretend to be one —
-it says so itself, up front, every time.
+Saheeh AI is a small wellness app. It is not a therapist and does not pretend to be one
 
 Built with React on the front and a Python Lambda on the back, served from S3
 behind CloudFront.
