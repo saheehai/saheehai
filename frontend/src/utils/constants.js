@@ -110,4 +110,5 @@ export const STORAGE_KEYS = {
   chatScrollPosition: 'chatScrollPosition',
   journalDraft: 'journalDraft',
   rateLimit: 'saheehAI_rateLimit',
+  disclaimerAccepted: 'saheehAI_disclaimerAccepted',
 };
