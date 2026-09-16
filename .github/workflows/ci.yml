@@ -42,6 +42,8 @@ jobs:
           # only at deploy time, so CI never needs production config.
           REACT_APP_API_ENDPOINT: https://ci.invalid/prod
           REACT_APP_TURNSTILE_SITE_KEY: ci-placeholder-site-key
+          REACT_APP_COGNITO_USER_POOL_ID: us-east-1_ciPlaceholder
+          REACT_APP_COGNITO_CLIENT_ID: ciplaceholderclientid
         run: npm run build
 
       - name: Guard against hardcoded API endpoints

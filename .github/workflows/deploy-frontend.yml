@@ -41,12 +41,15 @@ jobs:
         env:
           API_ENDPOINT: ${{ vars.API_ENDPOINT }}
           TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
           S3_BUCKET: ${{ vars.S3_BUCKET }}
           CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
           AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
         run: |
           missing=0
-          for v in API_ENDPOINT TURNSTILE_SITE_KEY S3_BUCKET CLOUDFRONT_DISTRIBUTION_ID AWS_DEPLOY_ROLE_ARN; do
+          for v in API_ENDPOINT TURNSTILE_SITE_KEY COGNITO_USER_POOL_ID COGNITO_CLIENT_ID \
+                   S3_BUCKET CLOUDFRONT_DISTRIBUTION_ID AWS_DEPLOY_ROLE_ARN; do
             if [ -z "${!v}" ]; then
               echo "::error::Repository variable $v is not set."
               missing=1
@@ -60,6 +63,8 @@ jobs:
           CI: true
           REACT_APP_API_ENDPOINT: ${{ vars.API_ENDPOINT }}
           REACT_APP_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          REACT_APP_COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          REACT_APP_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
         run: npm run build
 
       - name: Configure AWS credentials

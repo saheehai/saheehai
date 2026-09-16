@@ -7,17 +7,29 @@ GitHub is the source of truth. Merging to `main` deploys; nothing is deployed fr
 ```
 Browser ──▶ CloudFront (saheeh.ai) ──▶ S3 bucket (static React build)
    │
+   ├──────▶ Cognito user pool  (sign up / sign in, SRP)
+   │              └── PreSignUp Lambda verifies a Turnstile challenge
+   │
    └──────▶ API Gateway ──▶ Lambda ──▶ Bedrock
-                   │            └────▶ DynamoDB (chat history, journal)
-                   └── Turnstile authorizer + WAF rate limits
+              │      │          └────▶ DynamoDB (chat, journal, quota)
+              │      └── per-account daily quota
+              └── JWT authorizer validates the Cognito token
 ```
 
 The browser never talks to Bedrock directly and holds no AWS credentials.
 
-> An earlier design did give browsers direct Bedrock access via a Cognito
-> Identity Pool. That was abandoned. If you find `REACT_APP_COGNITO_*` or
-> `REACT_APP_BEDROCK_*` referenced anywhere, it is leftover from that design —
-> no code reads them.
+**Accounts are required.** Every API route needs a signed-in user. API Gateway's
+JWT authorizer validates the token against the user pool before the Lambda is
+invoked, so an unauthenticated request never reaches application code, and
+`user_id` is the Cognito `sub` — never anything the caller sent.
+
+Sign-up runs from the browser straight to Cognito, so the **PreSignUp trigger is
+the only server-side place a check can stand between a script and unlimited
+accounts**. It verifies a Turnstile token passed in `clientMetadata`. Without
+it the per-account quota would be meaningless, because accounts would be free.
+
+> An earlier design gave browsers direct Bedrock access via a Cognito *Identity*
+> Pool, and a later one issued anonymous HMAC device tokens. Both are gone.
 
 ## Repository layout
 
@@ -122,7 +134,9 @@ Under **Settings → Secrets and variables → Actions**:
 | `AWS_REGION` | `us-east-1` |
 | `S3_BUCKET` | `saheeh.ai` |
 | `CLOUDFRONT_DISTRIBUTION_ID` | `E1234567890ABC` |
-| `API_ENDPOINT` | `https://<new-api-id>.execute-api.us-east-1.amazonaws.com/prod` |
+| `API_ENDPOINT` | `https://<api-id>.execute-api.us-east-1.amazonaws.com` |
+| `COGNITO_USER_POOL_ID` | `us-east-1_XXXXXXXXX` (backend stack output) |
+| `COGNITO_CLIENT_ID` | app client id (backend stack output) |
 | `SITE_URL` | `https://saheeh.ai` |
 | `BACKEND_STACK_NAME` | `saheehai-backend` |
 
@@ -130,7 +144,7 @@ Under **Settings → Secrets and variables → Actions**:
 
 | Secret | Purpose |
 |---|---|
-| `TURNSTILE_SECRET` | Cloudflare Turnstile secret key, validated server-side by the authorizer. |
+| `TURNSTILE_SECRET` | Cloudflare Turnstile secret key, verified by the PreSignUp trigger. |
 
 Delete any legacy `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` secrets once
 OIDC is confirmed working. They are a standing liability.
@@ -161,6 +175,16 @@ those are real HTTP paths. CloudFront needs a custom error response mapping
 **Site returns `NoSuchWebsiteConfiguration`.** The S3 bucket lost its static
 website configuration. Re-enable it with `index.html` as both index and error
 document.
+
+**Sign-up fails with "Verification required".** The PreSignUp trigger did not
+receive a Turnstile token in `clientMetadata`. Check that `REACT_APP_TURNSTILE_SITE_KEY`
+is set in the build, and that the widget's domain list in Cloudflare covers the
+host you are on — including `localhost` for local development.
+
+**The user pool is retained on stack delete.** `DeletionPolicy: Retain`, because
+it holds real accounts. Deleting the stack leaves the pool behind; a template
+change that would *replace* it is the dangerous case, since that would orphan
+every account.
 
 **CI fails on a warning.** Intentional — `CI=true` makes react-scripts treat
 warnings as errors. Fix the warning.

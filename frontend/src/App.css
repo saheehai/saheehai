@@ -758,3 +758,9 @@ textarea::-webkit-scrollbar-thumb:hover {
         }
     }
 }
+/* Shown only while the stored Cognito session is being checked, so the
+   cream ground is already in place before anything renders over it. */
+.app-booting {
+  min-height: 100vh;
+  background-color: #FFF8E7;
+}

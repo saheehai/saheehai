@@ -7,11 +7,7 @@ which is why the live stack and the committed template had silently diverged.
 
 import os
 
-# --- Identity / auth -------------------------------------------------------
-
-# HMAC key used to sign device tokens. Supplied by the SAM template as a
-# NoEcho parameter. Absence is fatal: an unsigned token is a forgeable token.
-DEVICE_TOKEN_SECRET = os.environ.get("DEVICE_TOKEN_SECRET", "")
+# --- Turnstile -------------------------------------------------------------
 
 # Cloudflare Turnstile secret, validated server-side when minting a token.
 TURNSTILE_SECRET = os.environ.get("TURNSTILE_SECRET", "")
@@ -28,11 +24,6 @@ TURNSTILE_ALLOWED_HOSTNAMES = [
     ).split(",")
     if host.strip()
 ]
-
-# How long a device token stays valid. Short enough that a leaked token
-# expires on its own, long enough that a visitor is not re-challenged
-# constantly mid-conversation.
-DEVICE_TOKEN_TTL_SECONDS = int(os.environ.get("DEVICE_TOKEN_TTL_SECONDS", 7 * 24 * 3600))
 
 # --- CORS ------------------------------------------------------------------
 
@@ -66,21 +57,3 @@ MAX_HISTORY_MESSAGES = int(os.environ.get("MAX_HISTORY_MESSAGES", 40))
 MAX_JOURNAL_CHARS = int(os.environ.get("MAX_JOURNAL_CHARS", 20000))
 MAX_JOURNAL_TITLE_CHARS = int(os.environ.get("MAX_JOURNAL_TITLE_CHARS", 200))
 MAX_JOURNAL_TAGS = int(os.environ.get("MAX_JOURNAL_TAGS", 20))
-
-
-class ConfigError(RuntimeError):
-    """Raised at startup when a required secret is missing."""
-
-
-def validate() -> None:
-    """Fail fast on missing secrets rather than degrading into an open API."""
-    missing = [
-        name
-        for name, value in (
-            ("DEVICE_TOKEN_SECRET", DEVICE_TOKEN_SECRET),
-            ("TURNSTILE_SECRET", TURNSTILE_SECRET),
-        )
-        if not value
-    ]
-    if missing:
-        raise ConfigError(f"Missing required environment variables: {', '.join(missing)}")

@@ -67,8 +67,7 @@ jobs:
             --s3-prefix "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
             --parameter-overrides \
               "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
-              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
-              "DeviceTokenSecret=${{ secrets.DEVICE_TOKEN_SECRET }}"
+              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}"
 
       - name: Report endpoint
         run: |
@@ -94,7 +93,7 @@ jobs:
             -X POST "$endpoint/chat" \
             -H 'Content-Type: application/json' \
             -d '{"user_id":"ci-probe","message":"ci probe"}')
-          echo "Unauthenticated POST /chat -> $code"
+          echo "Unauthenticated POST /chat -> $code (expect 401: no Cognito token)"
           case "$code" in
             401|403) echo "Correctly rejected." ;;
             *) echo "::error::Expected 401/403 but got $code - endpoint is unprotected."; exit 1 ;;
