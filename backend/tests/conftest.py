@@ -8,8 +8,8 @@ import os
 import sys
 from pathlib import Path
 
-os.environ.setdefault("DEVICE_TOKEN_SECRET", "test-signing-key-not-a-real-secret")
 os.environ.setdefault("TURNSTILE_SECRET", "test-turnstile-secret")
+os.environ.setdefault("TURNSTILE_ACTION", "signup")
 os.environ.setdefault("ALLOWED_ORIGIN", "https://saheeh.ai")
 os.environ.setdefault("AWS_DEFAULT_REGION", "us-east-1")
 

@@ -1,8 +1,10 @@
-"""Saheeh AI backend: /session, /chat, /journal.
+"""Saheeh AI backend: /chat and /journal.
 
 Request handling rules, all of which the baseline version broke:
 
-  * Identity comes from a signed device token, never from the request body.
+  * Identity is the Cognito `sub` claim, validated by API Gateway's JWT
+    authorizer before the request reaches this function. It is never read
+    from the request body.
   * Conversation history is read from storage, never accepted from the caller.
   * Quota is enforced atomically in DynamoDB, not in per-container memory.
   * Message content is never written to logs.
@@ -68,10 +70,6 @@ def _parse_body(event: dict) -> dict:
     return body if isinstance(body, dict) else {}
 
 
-def _require_identity(event: dict) -> str:
-    return auth.verify_token(auth.bearer_token_from_event(event))
-
-
 def _clean_text(value, limit: int) -> str:
     if not isinstance(value, str):
         return ""
@@ -79,36 +77,6 @@ def _clean_text(value, limit: int) -> str:
 
 
 # --- Routes ----------------------------------------------------------------
-
-
-def handle_session(event: dict) -> dict:
-    """Exchange a Turnstile token for a device token.
-
-    This is the only unauthenticated route, and it is what makes scripted
-    access expensive: minting an identity requires solving a challenge in a
-    real browser.
-    """
-    body = _parse_body(event)
-    turnstile_token = body.get("turnstile_token")
-
-    if not isinstance(turnstile_token, str) or not turnstile_token:
-        return _error(400, "Verification token required")
-
-    if not auth.verify_turnstile(turnstile_token, auth.source_ip(event)):
-        return _error(403, "Verification failed")
-
-    # An existing token may be renewed, so a returning visitor keeps its
-    # journal rather than being handed a fresh identity on every expiry.
-    existing = auth.bearer_token_from_event(event)
-    carried_over = None
-    if existing:
-        try:
-            carried_over = auth.verify_token(existing)
-        except auth.AuthError:
-            carried_over = None
-
-    token, user_id, expires_at = auth.issue_token(carried_over)
-    return _respond(200, {"token": token, "user_id": user_id, "expires_at": expires_at})
 
 
 def handle_chat(event: dict, user_id: str) -> dict:
@@ -228,12 +196,6 @@ _AUTHENTICATED_ROUTES = {
 
 
 def lambda_handler(event, context):
-    try:
-        config.validate()
-    except config.ConfigError:
-        logger.exception("Backend is misconfigured")
-        return _error(500, "Server misconfigured")
-
     request = (event.get("requestContext") or {}).get("http", {})
     method = request.get("method", "")
     path = request.get("path", "") or event.get("rawPath", "")
@@ -248,16 +210,16 @@ def lambda_handler(event, context):
     if method == "OPTIONS":
         return {"statusCode": 204, "headers": _headers(), "body": ""}
 
-    if (method, path) == ("POST", "/session"):
-        return handle_session(event)
-
     handler = _AUTHENTICATED_ROUTES.get((method, path))
     if handler is None:
         return _error(404, "Not found")
 
     try:
-        user_id = _require_identity(event)
+        user_id = auth.user_id_from_event(event)
     except auth.AuthError:
+        # Reached only if the authorizer is misconfigured: API Gateway
+        # rejects an invalid or absent token before we are invoked.
+        logger.error("Request passed the authorizer with no usable subject claim")
         return _error(401, "Authentication required")
 
     try:

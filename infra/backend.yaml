@@ -33,14 +33,6 @@ Parameters:
       Hostnames siteverify may report for a token. Checking this stops a
       token solved on some other host sharing the sitekey from being used.
 
-  DeviceTokenSecret:
-    Type: String
-    NoEcho: true
-    MinLength: 32
-    Description: >-
-      HMAC key signing device tokens. Must be at least 32 random bytes.
-      Rotating it invalidates every issued token, logging all visitors out.
-
   ChatTableName:
     Type: String
     Default: saheeh_chat_history
@@ -71,12 +63,119 @@ Globals:
     Architectures: [arm64]
 
 Resources:
+  # --- Identity ------------------------------------------------------------
+
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    # Retain on stack delete: this holds real accounts, and a template change
+    # that replaced it would silently delete every user.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-users'
+      # Email is the username. AliasAttributes would let someone sign up with
+      # a username that collides with another person's email.
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      UsernameConfiguration:
+        CaseSensitive: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          TemporaryPasswordValidityDays: 3
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      UserAttributeUpdateSettings:
+        # Changing an email does not take effect until the new one is
+        # verified, so account recovery cannot be redirected to an
+        # unverified address.
+        AttributesRequireVerificationBeforeUpdate: [email]
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignUpFunction.Arn
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-web'
+      UserPoolId: !Ref UserPool
+      # No client secret: this runs in a browser, where a secret is not secret.
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
+      ReadAttributes: [email, email_verified]
+      WriteAttributes: [email]
+
+  # Gates account creation on a Turnstile challenge. Sign-up goes from the
+  # browser straight to Cognito, so this trigger is the only place a
+  # server-side check can run - without it, accounts can be minted in bulk
+  # and the per-account quota means nothing.
+  PreSignUpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-presignup'
+      CodeUri: ../backend/
+      Handler: presignup.lambda_handler
+      Description: Verifies a Turnstile token before allowing sign-up.
+      Timeout: 10
+      Environment:
+        Variables:
+          TURNSTILE_SECRET: !Ref TurnstileSecret
+          TURNSTILE_ACTION: signup
+          TURNSTILE_ALLOWED_HOSTNAMES: !Join [',', !Ref TurnstileAllowedHostnames]
+
+  PreSignUpInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PreSignUpFunction.Arn
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt UserPool.Arn
+
+  PreSignUpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-presignup'
+      RetentionInDays: !Ref LogRetentionDays
+
   # --- API -----------------------------------------------------------------
 
   Api:
     Type: AWS::Serverless::HttpApi
     Properties:
       StageName: $default
+      # Tokens are validated by API Gateway itself, so an unauthenticated or
+      # tampered request never reaches the function.
+      Auth:
+        DefaultAuthorizer: CognitoJwt
+        Authorizers:
+          CognitoJwt:
+            IdentitySource: $request.header.Authorization
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}'
+              audience:
+                - !Ref UserPoolClient
       CorsConfiguration:
         AllowOrigins: [!Ref AllowedOrigin]
         AllowHeaders: [content-type, authorization]
@@ -103,18 +202,11 @@ Resources:
       Environment:
         Variables:
           ALLOWED_ORIGIN: !Ref AllowedOrigin
-          TURNSTILE_SECRET: !Ref TurnstileSecret
-          TURNSTILE_ACTION: !Ref TurnstileAction
-          TURNSTILE_ALLOWED_HOSTNAMES: !Join [',', !Ref TurnstileAllowedHostnames]
-          DEVICE_TOKEN_SECRET: !Ref DeviceTokenSecret
           CHAT_TABLE: !Ref ChatTableName
           JOURNAL_TABLE: !Ref JournalTableName
           QUOTA_TABLE: !Ref QuotaTable
           DAILY_MESSAGE_QUOTA: !Ref DailyMessageQuota
       Events:
-        Session:
-          Type: HttpApi
-          Properties: { ApiId: !Ref Api, Path: /session, Method: POST }
         Chat:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /chat, Method: POST }
@@ -182,6 +274,14 @@ Outputs:
     Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com'
     Export:
       Name: !Sub '${AWS::StackName}-api-endpoint'
+
+  UserPoolId:
+    Description: Set as the REACT_APP_COGNITO_USER_POOL_ID repository variable.
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Description: Set as the REACT_APP_COGNITO_CLIENT_ID repository variable.
+    Value: !Ref UserPoolClient
 
   FunctionName:
     Value: !Ref ApiFunction

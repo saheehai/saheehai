@@ -67,8 +67,7 @@ jobs:
             --s3-prefix "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
             --parameter-overrides \
               "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
-              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
-              "DeviceTokenSecret=${{ secrets.DEVICE_TOKEN_SECRET }}"
+              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}"
 
       - name: Report endpoint
         run: |
