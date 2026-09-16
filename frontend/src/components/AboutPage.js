@@ -1,8 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeartHandshake, LogIn, Newspaper, Stethoscope, UserRound } from 'lucide-react';
-import Header from './Header';
-import ExperimentsMenu from './ExperimentsMenu';
+import { HeartHandshake, Stethoscope, UserRound } from 'lucide-react';
+import SiteNav from './SiteNav';
 
 /**
  * The front page, signed in or out. A nonprofit's "who we are" should not sit
@@ -72,38 +71,7 @@ function AboutPage({ signedIn, onSignOut }) {
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
-      <Header
-        left={
-          <>
-            <button type="button" onClick={() => navigate('/news')} className="logout-button">
-              <Newspaper size={15} aria-hidden="true" />
-              News
-            </button>
-            {signedIn && <ExperimentsMenu />}
-          </>
-        }
-        title="About Us"
-        // Crowded on phones once News, Experiments, Journal and Sign Out are
-        // all present, and the page says what it is without the title.
-        compactTitle
-        right={
-          signedIn ? (
-            <>
-              <button type="button" onClick={() => navigate('/journal')} className="logout-button">
-                Journal
-              </button>
-              <button type="button" onClick={onSignOut} className="logout-button">
-                Sign Out
-              </button>
-            </>
-          ) : (
-            <button type="button" onClick={() => navigate('/signin')} className="logout-button">
-              <LogIn size={15} aria-hidden="true" />
-              Sign in
-            </button>
-          )
-        }
-      />
+      <SiteNav signedIn={signedIn} onSignOut={onSignOut} />
 
       <main className="about">
         <section className="about-hero">

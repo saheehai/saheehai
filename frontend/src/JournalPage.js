@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import awsService from "./services/awsService";
-import Header from "./components/Header";
-import ExperimentsMenu from "./components/ExperimentsMenu";
+import { History } from "lucide-react";
+import SiteNav from "./components/SiteNav";
 import Alert from "./components/Alert";
 import FormInput from "./components/FormInput";
 import MoodPicker from "./components/MoodPicker";
@@ -13,7 +13,7 @@ const isToday = (timestamp) => {
   return entryDate.toDateString() === new Date().toDateString();
 };
 
-function JournalPage() {
+function JournalPage({ onSignOut }) {
   const navigate = useNavigate();
   const [todayEntry, setTodayEntry] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -136,20 +136,7 @@ function JournalPage() {
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
-      <Header
-        left={<ExperimentsMenu />}
-        title="Daily Journal"
-        right={
-          <>
-            <button onClick={() => navigate('/journal/archive')} className="logout-button">
-              Past Journals
-            </button>
-            <button onClick={() => navigate('/')} className="logout-button hide-sm">
-              About Us
-            </button>
-          </>
-        }
-      />
+      <SiteNav signedIn onSignOut={onSignOut} />
 
       <div className="page-content">
         {loading ? (
@@ -158,9 +145,20 @@ function JournalPage() {
           </div>
         ) : (
           <div>
-            <h1 style={{ fontSize: '32px', fontWeight: 600, marginBottom: '8px', color: COLORS.darkBrown }}>
-              {dateLabel}
-            </h1>
+            <div className="page-heading">
+              <div>
+                <p className="page-heading__eyebrow">Daily journal</p>
+                <h1 className="page-heading__title">{dateLabel}</h1>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/journal/archive')}
+                className="page-heading__action"
+              >
+                <History size={16} aria-hidden="true" />
+                Past journals
+              </button>
+            </div>
 
             {todayEntry && (
               <p style={{ fontSize: '14px', color: COLORS.mediumBrown, marginBottom: '24px', fontStyle: 'italic' }}>

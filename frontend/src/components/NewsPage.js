@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, LogIn } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import Header from './Header';
-import ExperimentsMenu from './ExperimentsMenu';
+import SiteNav from './SiteNav';
 import Alert from './Alert';
 
 /**
@@ -54,43 +52,13 @@ function useNewsJson(file) {
   return { data, error };
 }
 
-function NewsHeader({ signedIn, backTo, backLabel, title }) {
-  const navigate = useNavigate();
-  return (
-    <Header
-      left={
-        <button type="button" onClick={() => navigate(backTo)} className="logout-button back-button">
-          <ChevronLeft size={16} aria-hidden="true" />
-          {backLabel}
-        </button>
-      }
-      title={title}
-      right={
-        signedIn ? (
-          <>
-            <ExperimentsMenu />
-            <button type="button" onClick={() => navigate('/journal')} className="logout-button">
-              Journal
-            </button>
-          </>
-        ) : (
-          <button type="button" onClick={() => navigate('/signin')} className="logout-button">
-            <LogIn size={15} aria-hidden="true" />
-            Sign in
-          </button>
-        )
-      }
-    />
-  );
-}
-
-export function NewsListPage({ signedIn }) {
+export function NewsListPage({ signedIn, onSignOut }) {
   const { data, error } = useNewsJson('index.json');
   const posts = data ? data.posts : [];
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
-      <NewsHeader signedIn={signedIn} backTo="/" backLabel="About" title="News" />
+      <SiteNav signedIn={signedIn} onSignOut={onSignOut} />
 
       <main className="news">
         <header className="news__intro">
@@ -124,7 +92,7 @@ export function NewsListPage({ signedIn }) {
   );
 }
 
-export function NewsArticlePage({ signedIn }) {
+export function NewsArticlePage({ signedIn, onSignOut }) {
   const { slug } = useParams();
   // Never let a URL reach the fetch as a path of its own making.
   const safe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug || '');
@@ -132,7 +100,7 @@ export function NewsArticlePage({ signedIn }) {
 
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
-      <NewsHeader signedIn={signedIn} backTo="/news" backLabel="All news" title="News" />
+      <SiteNav signedIn={signedIn} onSignOut={onSignOut} />
 
       <main className="news">
         {error && <Alert kind="error">{error}</Alert>}

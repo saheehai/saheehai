@@ -11,7 +11,7 @@ import { ChevronDown, FlaskConical, MessageCircle } from 'lucide-react';
  */
 const ITEMS = [{ label: 'Chat', to: '/chat', Icon: MessageCircle }];
 
-function ExperimentsMenu() {
+function ExperimentsMenu({ active = false }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -38,14 +38,14 @@ function ExperimentsMenu() {
     <div className="menu" ref={rootRef}>
       <button
         type="button"
-        className={`logout-button menu__trigger ${open ? 'is-open' : ''}`}
+        className={`logout-button nav-btn menu__trigger ${open ? 'is-open' : ''} ${active ? 'is-active' : ''}`}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Experiments"
       >
         <FlaskConical size={15} aria-hidden="true" />
-        <span className="menu__label">Experiments</span>
+        <span className="nav-btn__label">Experiments</span>
         <ChevronDown size={14} className="menu__caret" aria-hidden="true" />
       </button>
 
