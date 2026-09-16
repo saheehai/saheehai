@@ -14,6 +14,7 @@ import rateLimitService from "./services/rateLimitService";
 import JournalPage from "./JournalPage";
 import JournalArchivePage from "./JournalArchivePage";
 import AboutPage from "./components/AboutPage";
+import { NewsArticlePage, NewsListPage } from "./components/NewsPage";
 import Header from "./components/Header";
 import DisclaimerModal from "./components/DisclaimerModal";
 import MessageBubble from "./components/MessageBubble";
@@ -317,6 +318,8 @@ function App() {
           path="/"
           element={<AboutPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
         />
+        <Route path="/news" element={<NewsListPage signedIn={isAuthenticated} />} />
+        <Route path="/news/:slug" element={<NewsArticlePage signedIn={isAuthenticated} />} />
         <Route path="/about" element={<Navigate to="/" replace />} />
         <Route path="/mission" element={<Navigate to="/" replace />} />
 

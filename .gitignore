@@ -16,6 +16,9 @@ venv/
 
 # Production builds
 build/
+
+# Generated from the top-level news/ folder by frontend/scripts/build-news.js
+frontend/public/news/
 dist/
 
 # Environment variables

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HeartHandshake, LogIn, Stethoscope, UserRound } from 'lucide-react';
+import { HeartHandshake, LogIn, Newspaper, Stethoscope, UserRound } from 'lucide-react';
 import Header from './Header';
 import ExperimentsMenu from './ExperimentsMenu';
 
@@ -73,8 +73,19 @@ function AboutPage({ signedIn, onSignOut }) {
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
       <Header
-        left={signedIn ? <ExperimentsMenu /> : <span className="app-header__brand">Saheeh AI</span>}
+        left={
+          <>
+            <button type="button" onClick={() => navigate('/news')} className="logout-button">
+              <Newspaper size={15} aria-hidden="true" />
+              News
+            </button>
+            {signedIn && <ExperimentsMenu />}
+          </>
+        }
         title="About Us"
+        // Crowded on phones once News, Experiments, Journal and Sign Out are
+        // all present, and the page says what it is without the title.
+        compactTitle
         right={
           signedIn ? (
             <>
@@ -209,26 +220,20 @@ function AboutPage({ signedIn, onSignOut }) {
           </div>
         </details>
 
-        <section className="about-cta">
-          {signedIn ? (
-            <button type="button" className="auth-submit about-cta__button" onClick={() => navigate('/chat')}>
-              Open the chat
+        {!signedIn && (
+          <section className="about-cta">
+            <button
+              type="button"
+              className="auth-submit about-cta__button"
+              onClick={() => navigate('/signin', { state: { mode: 'signUp' } })}
+            >
+              Create an account
             </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="auth-submit about-cta__button"
-                onClick={() => navigate('/signin', { state: { mode: 'signUp' } })}
-              >
-                Create an account
-              </button>
-              <button type="button" className="auth-link about-cta__link" onClick={() => navigate('/signin')}>
-                I already have an account
-              </button>
-            </>
-          )}
-        </section>
+            <button type="button" className="auth-link about-cta__link" onClick={() => navigate('/signin')}>
+              I already have an account
+            </button>
+          </section>
+        )}
 
         <p className="about-footnote">
           Saheeh AI is a wellness companion, not a therapist or medical professional. If you are

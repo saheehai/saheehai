@@ -47,6 +47,15 @@ Only what you changed redeploys. The full picture — architecture, the AWS
 setup, and the pipeline's sharper edges — lives in
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
+## Posting news
+
+The site's News page is built from the Markdown files in [`news/`](news/).
+To publish a post, copy `news/_template.md` to a new file named like
+`2026-09-16-back-online.md` (the date it goes up, then a short slug), fill in
+the front matter, write the post, and merge. Nothing else to touch: the
+build turns the folder into the JSON the page reads, and a merge deploys it.
+A malformed post fails the build with a message saying which file and why.
+
 ## A note on care
 
 This app holds what people write on their hardest days. That shapes the
