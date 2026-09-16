@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" role="img" aria-label="I love you, and you are going to do great things">
+  <defs>
+    <!-- The site's cream base with the same subtle dot texture as the app -->
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#5D4E37" opacity="0.10"/>
+      <circle cx="12" cy="12" r="0.7" fill="#5D4E37" opacity="0.07"/>
+    </pattern>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFF8E7" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#F5E6D3" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="420" fill="#FFF8E7"/>
+  <rect width="1200" height="420" fill="url(#dots)"/>
+  <rect width="1200" height="420" fill="url(#fade)"/>
+  <rect x="8" y="8" width="1184" height="404" rx="24" fill="none" stroke="#5D4E37" stroke-opacity="0.18" stroke-width="2"/>
+
+  <!-- Sprout mark, from the site's favicon -->
+  <g transform="translate(600, 118) scale(0.2) translate(-244, -244)">
+    <path fill="#6B4423" d="M440.693,141.586c-96-15.9-151.1,18-181.7,62.6v-0.3c16-75-24.5-232.4-211.3-199.4c-5.2,0-18.7,8.6-18.7,21.8 c0,79.3,25.7,196.7,188.5,187.4v253.9c0,11.4,9.3,20.8,20.8,20.8c10.4,0,19.7-9.3,20.8-20.8v-117.7 c173.4,15.8,200.3-105.3,200.3-186.5C459.393,158.186,456.393,143.486,440.693,141.586z M70.493,42.886 c113.8-19.1,151.9,74.1,150.6,128.7C135.893,186.486,70.493,130.986,70.493,42.886z M267.393,308.686 c-1.4-54.6,36.8-147.8,150.5-128.7C417.893,268.086,352.493,323.686,267.393,308.686z"/>
+  </g>
+
+  <g font-family="Georgia, 'Iowan Old Style', 'Palatino Linotype', serif" text-anchor="middle">
+    <text x="600" y="252" font-size="54" fill="#6B4423">I love you,</text>
+    <text x="600" y="314" font-size="54" fill="#6B4423">and you are going to do great things!</text>
+  </g>
+
+  <g font-family="Georgia, 'Iowan Old Style', 'Palatino Linotype', serif" text-anchor="middle">
+    <text x="600" y="370" font-size="21" fill="#8B6B47" letter-spacing="3.5">SAHEEH AI</text>
+  </g>
+
+</svg>
