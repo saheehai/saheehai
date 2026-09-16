@@ -94,7 +94,12 @@ def handle_chat(event: dict, user_id: str) -> dict:
         history = storage.get_conversation_history(conversation_id, user_id)
     except storage.ConversationForbidden:
         # Deliberately 404, not 403: confirming that a conversation exists
-        # would let a caller enumerate valid conversation ids.
+        # would let a caller enumerate valid conversation ids. Logged (ids
+        # only) because the common cause is a browser holding on to a
+        # conversation from a previous identity, which is worth seeing.
+        logger.warning(
+            "Conversation %s is not owned by the caller; refusing", conversation_id
+        )
         return _error(404, "Conversation not found")
 
     try:
@@ -136,8 +141,10 @@ def handle_chat(event: dict, user_id: str) -> dict:
         logger.error("Bedrock returned no text content")
         return _error(502, "The assistant is unavailable right now")
 
-    storage.save_chat_message(conversation_id, user_id, "user", message)
-    timestamp = storage.save_chat_message(conversation_id, user_id, "assistant", reply)
+    asked_at = storage.save_chat_message(conversation_id, user_id, "user", message)
+    timestamp = storage.save_chat_message(
+        conversation_id, user_id, "assistant", reply, after=asked_at
+    )
 
     return _respond(
         200,

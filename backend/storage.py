@@ -93,8 +93,19 @@ def release_quota(identity: str) -> None:
 # --- Conversations ---------------------------------------------------------
 
 
-def save_chat_message(conversation_id: str, user_id: str, role: str, content: str) -> int:
+def save_chat_message(
+    conversation_id: str, user_id: str, role: str, content: str, after: int | None = None
+) -> int:
+    """Store one turn and return its timestamp (the sort key).
+
+    `after` keeps a reply strictly later than the message it answers. The two
+    are written back to back, and a shared millisecond would make the second
+    put overwrite the first, leaving a history that starts with the
+    assistant's turn.
+    """
     timestamp = _now_ms()
+    if after is not None and timestamp <= after:
+        timestamp = after + 1
     _chat_table.put_item(
         Item={
             "conversation_id": conversation_id,

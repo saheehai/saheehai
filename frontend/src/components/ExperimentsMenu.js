@@ -9,7 +9,7 @@ import { ChevronDown, FlaskConical, MessageCircle } from 'lucide-react';
  * a top-level button so new experiments can join the list without the header
  * growing a button each time.
  */
-const ITEMS = [{ label: 'Chat', to: '/', Icon: MessageCircle }];
+const ITEMS = [{ label: 'Chat', to: '/chat', Icon: MessageCircle }];
 
 function ExperimentsMenu() {
   const navigate = useNavigate();
