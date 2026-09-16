@@ -1,7 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Alert from './Alert';
 import FormInput from './FormInput';
-import { COLORS, COMMON_STYLES } from '../utils/constants';
+import ChatBackdrop from './ChatBackdrop';
 import * as cognito from '../services/cognitoService';
 
 /**
@@ -11,6 +12,9 @@ import * as cognito from '../services/cognitoService';
  * each other constantly (sign-up leads into confirmation, an unconfirmed
  * sign-in leads to the same place) and keeping the email in state across those
  * hops means nobody retypes it.
+ *
+ * It floats over a blurred still of the chat, so the app is visibly right
+ * there behind the door rather than replaced by a form.
  */
 
 const MIN_PASSWORD_LENGTH = 12;
@@ -138,176 +142,116 @@ export default function AuthPage({ onAuthenticated }) {
   const needsCode = mode === 'confirm' || mode === 'reset';
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>{copy.title}</h1>
-          <p style={styles.subtitle}>{copy.subtitle}</p>
-        </div>
+    <div className="auth-scene">
+      <ChatBackdrop />
 
-        {error && <Alert kind="error">{error}</Alert>}
-        {notice && !error && <Alert kind="success">{notice}</Alert>}
+      <div className="auth-overlay">
+        <div className="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+          <div className="auth-card">
+            <div className="auth-brand">
+              <img src="/saheeh-favicon/favicon.svg" alt="" width="36" height="36" />
+              <span>Saheeh AI</span>
+            </div>
 
-        <form onSubmit={handleSubmit}>
-          <FormInput
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-            disabled={busy || mode === 'confirm' || mode === 'reset'}
-          />
+            <h1 id="auth-title" className="auth-title">
+              {copy.title}
+            </h1>
+            <p className="auth-subtitle">{copy.subtitle}</p>
 
-          {needsCode && (
-            <FormInput
-              label="Code"
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              required
-              disabled={busy}
-            />
-          )}
+            {error && <Alert kind="error">{error}</Alert>}
+            {notice && !error && <Alert kind="success">{notice}</Alert>}
 
-          {needsPassword && (
-            <FormInput
-              label={mode === 'reset' ? 'New password' : 'Password'}
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
-              required
-              disabled={busy}
-            />
-          )}
+            <form onSubmit={handleSubmit}>
+              <FormInput
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+                disabled={busy || mode === 'confirm' || mode === 'reset'}
+              />
 
-          {passwordProblem && <p style={styles.hint}>{passwordProblem}</p>}
+              {needsCode && (
+                <FormInput
+                  label="Code"
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  placeholder="123456"
+                  required
+                  disabled={busy}
+                />
+              )}
 
-          <button
-            type="submit"
-            disabled={busy}
-            style={{
-              ...COMMON_STYLES.button,
-              width: '100%',
-              marginTop: '8px',
-              opacity: busy ? 0.6 : 1,
-              cursor: busy ? 'default' : 'pointer',
-            }}
-          >
-            {busy ? 'One moment…' : copy.submit}
-          </button>
-        </form>
+              {needsPassword && (
+                <FormInput
+                  label={mode === 'reset' ? 'New password' : 'Password'}
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === 'signIn' ? 'current-password' : 'new-password'}
+                  required
+                  disabled={busy}
+                />
+              )}
 
-        <div style={styles.links}>
-          {mode === 'signIn' && (
-            <>
-              <button type="button" style={styles.link} onClick={() => go('signUp')}>
-                Create an account
+              {passwordProblem && <p className="auth-hint">{passwordProblem}</p>}
+
+              <button type="submit" disabled={busy} className="auth-submit">
+                {busy ? 'One moment…' : copy.submit}
               </button>
-              <button type="button" style={styles.link} onClick={() => go('forgot')}>
-                Forgot password?
-              </button>
-            </>
-          )}
+            </form>
 
-          {mode === 'signUp' && (
-            <button type="button" style={styles.link} onClick={() => go('signIn')}>
-              I already have an account
-            </button>
-          )}
+            <div className="auth-links">
+              {mode === 'signIn' && (
+                <>
+                  <button type="button" className="auth-link" onClick={() => go('signUp')}>
+                    Create an account
+                  </button>
+                  <button type="button" className="auth-link" onClick={() => go('forgot')}>
+                    Forgot password?
+                  </button>
+                </>
+              )}
 
-          {mode === 'confirm' && (
-            <>
-              <button type="button" style={styles.link} onClick={resend}>
-                Send another code
-              </button>
-              <button type="button" style={styles.link} onClick={() => go('signIn')}>
-                Back to sign in
-              </button>
-            </>
-          )}
+              {mode === 'signUp' && (
+                <button type="button" className="auth-link" onClick={() => go('signIn')}>
+                  I already have an account
+                </button>
+              )}
 
-          {(mode === 'forgot' || mode === 'reset') && (
-            <button type="button" style={styles.link} onClick={() => go('signIn')}>
-              Back to sign in
-            </button>
-          )}
+              {mode === 'confirm' && (
+                <>
+                  <button type="button" className="auth-link" onClick={resend}>
+                    Send another code
+                  </button>
+                  <button type="button" className="auth-link" onClick={() => go('signIn')}>
+                    Back to sign in
+                  </button>
+                </>
+              )}
+
+              {(mode === 'forgot' || mode === 'reset') && (
+                <button type="button" className="auth-link" onClick={() => go('signIn')}>
+                  Back to sign in
+                </button>
+              )}
+            </div>
+          </div>
+
+          <p className="auth-footnote">
+            Saheeh AI is a wellness companion, not a therapist or medical professional. If you
+            are in crisis, please contact your local emergency services or a crisis line.
+            <br />
+            <Link to="/about" className="auth-footnote__link">
+              About Saheeh AI
+            </Link>
+          </p>
         </div>
       </div>
-
-      <p style={styles.footnote}>
-        Saheeh AI is a wellness companion, not a therapist or medical
-        professional. If you are in crisis, please contact your local emergency
-        services or a crisis line.
-      </p>
     </div>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '24px 16px',
-    backgroundColor: COLORS.cream,
-    boxSizing: 'border-box',
-  },
-  card: {
-    width: '100%',
-    maxWidth: '420px',
-    padding: '32px 28px',
-    backgroundColor: COLORS.cream,
-    border: `2px solid ${COLORS.brownBorder}`,
-    borderRadius: '16px',
-    boxSizing: 'border-box',
-  },
-  header: { marginBottom: '20px' },
-  title: {
-    margin: '0 0 6px',
-    fontSize: '26px',
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  subtitle: {
-    margin: 0,
-    fontSize: '15px',
-    lineHeight: 1.5,
-    color: COLORS.mediumBrown,
-  },
-  hint: {
-    margin: '-8px 0 12px',
-    fontSize: '13px',
-    color: COLORS.errorBorder,
-  },
-  links: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: '8px',
-    marginTop: '18px',
-  },
-  link: {
-    padding: 0,
-    background: 'none',
-    border: 'none',
-    fontSize: '14px',
-    color: COLORS.primary,
-    cursor: 'pointer',
-    textDecoration: 'underline',
-  },
-  footnote: {
-    maxWidth: '420px',
-    marginTop: '20px',
-    fontSize: '12px',
-    lineHeight: 1.6,
-    textAlign: 'center',
-    color: COLORS.mediumBrown,
-  },
-};

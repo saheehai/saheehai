@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
 import awsService from "./services/awsService";
 import Header from "./components/Header";
+import ExperimentsMenu from "./components/ExperimentsMenu";
 import Alert from "./components/Alert";
 import FormInput from "./components/FormInput";
 import MoodPicker from "./components/MoodPicker";
@@ -137,17 +137,17 @@ function JournalPage() {
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
       <Header
-        left={
-          <button onClick={() => navigate('/')} className="logout-button back-button">
-            <ChevronLeft size={16} />
-            Chat
-          </button>
-        }
+        left={<ExperimentsMenu />}
         title="Daily Journal"
         right={
-          <button onClick={() => navigate('/journal/archive')} className="logout-button">
-            Past Journals
-          </button>
+          <>
+            <button onClick={() => navigate('/journal/archive')} className="logout-button">
+              Past Journals
+            </button>
+            <button onClick={() => navigate('/about')} className="logout-button hide-sm">
+              About Us
+            </button>
+          </>
         }
       />
 

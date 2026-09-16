@@ -1,25 +1,40 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
-import { ChevronDown, Send } from "lucide-react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
+import { ChevronDown } from "lucide-react";
 import "./App.css";
 import awsService from "./services/awsService";
 import rateLimitService from "./services/rateLimitService";
 import JournalPage from "./JournalPage";
 import JournalArchivePage from "./JournalArchivePage";
-import MissionPage from "./components/MissionPage";
+import AboutPage from "./components/AboutPage";
 import Header from "./components/Header";
-import LoginModal from "./components/LoginModal";
+import DisclaimerModal from "./components/DisclaimerModal";
 import MessageBubble from "./components/MessageBubble";
 import TypingIndicator from "./components/TypingIndicator";
+import ChatInputBar from "./components/ChatInputBar";
+import ExperimentsMenu from "./components/ExperimentsMenu";
 import AuthPage from "./components/AuthPage";
 import * as cognito from "./services/cognitoService";
 import { usePersistedState } from "./hooks/usePersistedState";
 import { useScrollToBottom } from "./hooks/useScrollToBottom";
 import { splitIntoChunks } from "./utils/textUtils";
-import { STORAGE_KEYS, TYPING_DELAY_MS } from "./utils/constants";
+import { GREETING_MESSAGE, STORAGE_KEYS, TYPING_DELAY_MS } from "./utils/constants";
 
-const INITIAL_MESSAGES = [
-  { id: 1, text: "Hello! I'm Saheeh AI. Ask me anything!", sender: "assistant" },
+const INITIAL_MESSAGES = [GREETING_MESSAGE];
+
+// What one person's session leaves in the browser. Cleared on sign-out so the
+// next account on this device starts from nothing.
+const PERSONAL_LOCAL_KEYS = [
+  STORAGE_KEYS.chatMessages,
+  STORAGE_KEYS.conversationId,
+  STORAGE_KEYS.journalDraft,
+  STORAGE_KEYS.disclaimerAccepted,
 ];
 
 function ChatPage({ onSignedOut }) {
@@ -31,7 +46,8 @@ function ChatPage({ onSignedOut }) {
     STORAGE_KEYS.disclaimerAccepted,
     false
   );
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  // Ask up front rather than ambushing the first send.
+  const [showDisclaimer, setShowDisclaimer] = useState(() => !hasAcknowledged);
   const [messages, setMessages] = usePersistedState(STORAGE_KEYS.chatMessages, INITIAL_MESSAGES);
   const [conversationId, setConversationId] = usePersistedState(STORAGE_KEYS.conversationId, null);
   const [inputText, setInputText] = useState("");
@@ -87,12 +103,11 @@ function ChatPage({ onSignedOut }) {
   }, []);
 
   // Acknowledging the crisis-resources disclaimer, not signing in - that is
-  // Cognito's job now. Persisted so it is asked once, not on every return
-  // from /journal. setIsLoggedIn is a stable useState setter, but eslint
-  // cannot see through the custom hook to prove it.
+  // Cognito's job now. setHasAcknowledged is a stable useState setter, but
+  // eslint cannot see through the custom hook to prove it.
   const handleAcknowledge = useCallback(() => {
     setHasAcknowledged(true);
-    setShowLoginModal(false);
+    setShowDisclaimer(false);
   }, [setHasAcknowledged]);
 
   const handleSignOut = useCallback(() => {
@@ -104,7 +119,7 @@ function ChatPage({ onSignedOut }) {
     const userMessage = inputText.trim();
     if (!userMessage) return;
     if (!hasAcknowledged) {
-      setShowLoginModal(true);
+      setShowDisclaimer(true);
       return;
     }
 
@@ -178,28 +193,20 @@ function ChatPage({ onSignedOut }) {
     }
   }, [inputText, hasAcknowledged, conversationId, setMessages, setConversationId, scrollToBottom]);
 
-  const handleKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleSend();
-      }
-    },
-    [handleSend]
-  );
-
   return (
     <div className="flex flex-col min-h-screen h-full w-full paper-texture">
       <Header
+        left={<span className="app-header__brand">Saheeh AI</span>}
         right={
           <>
-            <button onClick={() => navigate('/mission')} className="logout-button">
-              About Us
-            </button>
-            <button onClick={() => navigate('/journal')} className="logout-button">
+            <ExperimentsMenu />
+            <button type="button" onClick={() => navigate('/journal')} className="logout-button">
               Journal
             </button>
-            <button onClick={handleSignOut} className="logout-button">
+            <button type="button" onClick={() => navigate('/about')} className="logout-button">
+              About Us
+            </button>
+            <button type="button" onClick={handleSignOut} className="logout-button">
               Sign Out
             </button>
           </>
@@ -229,37 +236,17 @@ function ChatPage({ onSignedOut }) {
 
       <div className="chat-input-container">
         <div className="max-w-3xl mx-auto">
-          <div className="chat-input-bar shadow-lg">
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              className="chat-input flex-1 bg-transparent focus:outline-none text-base"
-            />
-            <button
-              onClick={handleSend}
-              className="chat-send-btn hover:scale-105 transition-transform flex-shrink-0"
-              aria-label="Send"
-            >
-              <div className="relative w-full h-full">
-                <div className="chat-send-icon chat-send-icon--shadow" />
-                <div
-                  className={`chat-send-icon chat-send-icon--mid ${isSending ? 'chat-send-icon--sending' : ''}`}
-                />
-                <div
-                  className={`chat-send-icon chat-send-icon--top ${isSending ? 'chat-send-icon--sending' : ''}`}
-                >
-                  <Send size={16} color="white" strokeWidth={2} />
-                </div>
-              </div>
-            </button>
-          </div>
+          <ChatInputBar
+            value={inputText}
+            onChange={setInputText}
+            onSend={handleSend}
+            sending={isSending}
+          />
         </div>
       </div>
 
-      {showLoginModal && (
-        <LoginModal onClose={() => setShowLoginModal(false)} onConfirm={handleAcknowledge} />
+      {showDisclaimer && (
+        <DisclaimerModal onClose={() => setShowDisclaimer(false)} onConfirm={handleAcknowledge} />
       )}
     </div>
   );
@@ -285,23 +272,37 @@ function App() {
     };
   }, []);
 
-  const handleSignedOut = useCallback(() => setIsAuthenticated(false), []);
+  const handleSignedOut = useCallback(() => {
+    PERSONAL_LOCAL_KEYS.forEach((key) => localStorage.removeItem(key));
+    sessionStorage.removeItem(STORAGE_KEYS.chatScrollPosition);
+    setIsAuthenticated(false);
+  }, []);
+
+  const handleAuthenticated = useCallback(() => setIsAuthenticated(true), []);
 
   if (isAuthenticated === null) {
     return <div className="app-booting" aria-busy="true" />;
   }
 
-  if (!isAuthenticated) {
-    return <AuthPage onAuthenticated={() => setIsAuthenticated(true)} />;
-  }
-
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<ChatPage onSignedOut={handleSignedOut} />} />
-        <Route path="/mission" element={<MissionPage />} />
-        <Route path="/journal" element={<JournalPage />} />
-        <Route path="/journal/archive" element={<JournalArchivePage />} />
+        {/* Public either way: who we are should not sit behind a login. */}
+        <Route path="/about" element={<AboutPage signedIn={isAuthenticated} />} />
+        <Route path="/mission" element={<Navigate to="/about" replace />} />
+
+        {isAuthenticated ? (
+          <>
+            <Route path="/" element={<ChatPage onSignedOut={handleSignedOut} />} />
+            <Route path="/journal" element={<JournalPage />} />
+            <Route path="/journal/archive" element={<JournalArchivePage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        ) : (
+          // Any other path keeps its URL, so a deep link lands where it was
+          // pointed once the person has signed in.
+          <Route path="*" element={<AuthPage onAuthenticated={handleAuthenticated} />} />
+        )}
       </Routes>
     </Router>
   );

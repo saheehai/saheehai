@@ -100,6 +100,12 @@ export const MOOD_EMOJI_MAP = {
   reflective: '🤔',
 };
 
+export const GREETING_MESSAGE = {
+  id: 1,
+  text: "Hello! I'm Saheeh AI. Ask me anything!",
+  sender: 'assistant',
+};
+
 export const CHUNK_SIZE = 80;
 export const TYPING_DELAY_MS = 3000;
 export const DAILY_RATE_LIMIT = 50;
