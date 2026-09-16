@@ -149,7 +149,19 @@ function ChatPage({ onSignOut }) {
     setInputText("");
 
     try {
-      const result = await awsService.sendMessage(userMessage, conversationId);
+      let result;
+      try {
+        result = await awsService.sendMessage(userMessage, conversationId);
+      } catch (err) {
+        // The stored conversation id is a cache, and it can go stale: it may
+        // belong to a previous identity on this browser, or the server may no
+        // longer hold it. Either way the server says 404, and the right
+        // response is to start a fresh conversation, not to strand the person.
+        if (err.status !== 404 || !conversationId) throw err;
+        console.warn('Stored conversation was rejected; starting a new one');
+        setConversationId(null);
+        result = await awsService.sendMessage(userMessage, null);
+      }
       // The server holds the real quota; keep the local hint in step with it.
       rateLimitService.syncFromServer(result.quota);
       const aiResponse = result.response;

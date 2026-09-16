@@ -134,7 +134,7 @@ def test_journal_save_ignores_a_user_id_in_the_body(monkeypatch):
 def test_chat_attributes_messages_to_the_token_subject(no_model, monkeypatch):
     saved = []
     monkeypatch.setattr(
-        storage, "save_chat_message", lambda cid, uid, role, content: saved.append(uid) or 1
+        storage, "save_chat_message", lambda cid, uid, role, content, **kw: saved.append(uid) or 1
     )
 
     lambda_function.lambda_handler(
@@ -257,3 +257,29 @@ def test_internal_errors_do_not_leak_details(monkeypatch):
     assert body_of(response) == {"error": "Internal error"}
     assert "979130301726" not in response["body"]
     assert "saheeh_chat_history" not in response["body"]
+
+
+def test_reply_is_stored_strictly_after_the_message(monkeypatch):
+    """Two saves in the same millisecond must not share a sort key."""
+    rows = []
+
+    class Table:
+        def put_item(self, Item):
+            rows.append(Item)
+
+    monkeypatch.setattr(storage, "_chat_table", Table())
+    monkeypatch.setattr(storage, "_now_ms", lambda: 1_000)
+    monkeypatch.setattr(storage, "get_conversation_history", lambda cid, uid: [])
+    monkeypatch.setattr(
+        storage, "consume_quota", lambda uid: {"used": 1, "limit": 50, "remaining": 49}
+    )
+    monkeypatch.setattr(
+        lambda_function._bedrock,
+        "converse",
+        lambda **kw: {"output": {"message": {"content": [{"text": "hello"}]}}},
+    )
+
+    resp = lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+
+    assert resp["statusCode"] == 200
+    assert [(r["role"], r["timestamp"]) for r in rows] == [("user", 1_000), ("assistant", 1_001)]
