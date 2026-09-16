@@ -22,7 +22,13 @@ const INITIAL_MESSAGES = [
 
 function ChatPage() {
   const navigate = useNavigate();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  // Persisted, not component state. ChatPage unmounts on navigation, so plain
+  // useState reset this on every return from /journal and re-prompted the
+  // disclaimer as though the visitor had been logged out.
+  const [isLoggedIn, setIsLoggedIn] = usePersistedState(
+    STORAGE_KEYS.disclaimerAccepted,
+    false
+  );
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [messages, setMessages] = usePersistedState(STORAGE_KEYS.chatMessages, INITIAL_MESSAGES);
   const [conversationId, setConversationId] = usePersistedState(STORAGE_KEYS.conversationId, null);
@@ -78,12 +84,14 @@ function ChatPage() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
+  // setIsLoggedIn is a useState setter behind usePersistedState and so is
+  // stable, but eslint cannot see through the custom hook to prove it.
   const handleLogin = useCallback(() => {
     setIsLoggedIn(true);
     setShowLoginModal(false);
-  }, []);
+  }, [setIsLoggedIn]);
 
-  const handleLogout = useCallback(() => setIsLoggedIn(false), []);
+  const handleLogout = useCallback(() => setIsLoggedIn(false), [setIsLoggedIn]);
 
   const handleSend = useCallback(async () => {
     const userMessage = inputText.trim();

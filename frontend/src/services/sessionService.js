@@ -45,20 +45,40 @@ function loadTurnstileScript() {
   return scriptPromise;
 }
 
-/** Container for the widget. Kept in the DOM so Turnstile can show a prompt
- *  if it decides the visitor needs one. */
+/**
+ * Host element for the widget.
+ *
+ * Hidden by default. Most visitors are cleared without ever interacting, and
+ * a permanently parked "Verify you are human" box in the corner is noise on
+ * every page. It is revealed only when Turnstile tells us it actually needs
+ * the visitor to do something, and hidden again the moment it is done.
+ */
 function challengeContainer() {
   let el = document.getElementById('turnstile-container');
   if (!el) {
     el = document.createElement('div');
     el.id = 'turnstile-container';
-    el.style.position = 'fixed';
-    el.style.bottom = '16px';
-    el.style.right = '16px';
-    el.style.zIndex = '2147483647';
+    el.setAttribute('aria-live', 'polite');
+    Object.assign(el.style, {
+      position: 'fixed',
+      inset: '0',
+      zIndex: '2147483647',
+      display: 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'rgba(0, 0, 0, 0.3)',
+    });
     document.body.appendChild(el);
   }
   return el;
+}
+
+function showChallenge() {
+  challengeContainer().style.display = 'flex';
+}
+
+function hideChallenge() {
+  challengeContainer().style.display = 'none';
 }
 
 async function solveChallenge() {
@@ -66,6 +86,7 @@ async function solveChallenge() {
 
   return new Promise((resolve, reject) => {
     const settle = (fn) => (value) => {
+      hideChallenge();
       try {
         turnstile.reset(widgetId);
       } catch {
@@ -78,8 +99,12 @@ async function solveChallenge() {
       widgetId = turnstile.render(challengeContainer(), {
         sitekey: SITE_KEY,
         action: ACTION,
-        // Stays out of the way unless the visitor actually looks suspicious.
+        // Render nothing unless Cloudflare decides this visitor needs to act.
         appearance: 'interaction-only',
+        // Only reveal the overlay for a challenge that genuinely needs the
+        // visitor; a silent pass should never be visible.
+        'before-interactive-callback': showChallenge,
+        'after-interactive-callback': hideChallenge,
         callback: (token) => settle(resolve)(token),
         'error-callback': () => settle(reject)(new Error('Verification failed')),
         'timeout-callback': () => settle(reject)(new Error('Verification timed out')),
@@ -91,6 +116,7 @@ async function solveChallenge() {
     try {
       turnstile.execute(widgetId, { sitekey: SITE_KEY, action: ACTION });
     } catch (err) {
+      hideChallenge();
       reject(err);
     }
   });
