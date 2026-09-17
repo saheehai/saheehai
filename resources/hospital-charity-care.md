@@ -1,7 +1,7 @@
 ---
 title: How do I get a hospital bill reduced or forgiven?
 track: paying-for-care
-status: draft
+status: published
 updated: 2026-09-16
 reviewed_by:
 summary: Most nonprofit hospitals are required to have a financial assistance policy that discounts or forgives bills for people below an income line. Here is how to ask.

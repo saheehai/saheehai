@@ -1968,14 +1968,15 @@ a.help-item__how:hover {
 /* Newsletter */
 .newsletter {
     margin: 36px 0 0;
-    padding: 22px 22px 18px;
+    padding: 22px 24px 18px;
     background-color: var(--cream);
     border: 2px solid var(--brown-line);
     border-radius: 14px;
 }
 
+/* Side padding matches .news-card so the box lines up under the guide list. */
 .newsletter--compact {
-    padding: 18px 20px 14px;
+    padding: 18px 24px 14px;
 }
 
 .newsletter__heading {

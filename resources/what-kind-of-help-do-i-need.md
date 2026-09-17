@@ -1,7 +1,7 @@
 ---
 title: Therapist, counselor, psychologist, psychiatrist: which one do I need?
 track: mental-health-basics
-status: draft
+status: published
 updated: 2026-09-16
 reviewed_by:
 summary: The titles are confusing and the differences matter for cost and for what each person can do. A short guide to who does what, and where to start.
