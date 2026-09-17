@@ -3,7 +3,7 @@ title: Dialectical Behavior Therapy (DBT)
 track: foundations
 status: draft
 updated: 2026-09-16
-reviewed_by:
+reviewed_by: Rehan Ali
 order: 3
 summary: Skills for big emotions. Distress tolerance, regulation, and staying steady in conflict.
 ---

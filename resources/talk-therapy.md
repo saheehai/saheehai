@@ -3,7 +3,7 @@ title: Talk therapy
 track: foundations
 status: draft
 updated: 2026-09-16
-reviewed_by:
+reviewed_by: Rehan Ali
 order: 1
 summary: The umbrella everything else sits under. Talking to someone trained to actually hear you.
 ---

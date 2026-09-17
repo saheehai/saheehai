@@ -3,7 +3,7 @@ title: Cognitive Behavioral Therapy (CBT)
 track: foundations
 status: draft
 updated: 2026-09-16
-reviewed_by:
+reviewed_by: Rehan Ali
 order: 2
 summary: Catch the thought, test it against reality, change what you do next. Structured and practical.
 ---

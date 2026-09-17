@@ -3,7 +3,7 @@ title: Psychodynamic therapy
 track: foundations
 status: draft
 updated: 2026-09-16
-reviewed_by:
+reviewed_by: Rehan Ali
 order: 4
 summary: Where the pattern started and why it keeps repeating. Insight-driven, with a deeper timeline.
 ---
