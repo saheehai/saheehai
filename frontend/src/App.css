@@ -930,8 +930,8 @@ textarea:focus-visible {
 
 .about-hero__logo {
     flex-shrink: 0;
-    width: 96px;
-    height: 96px;
+    width: 192px;
+    height: 192px;
 }
 
 .about-hero__title {
@@ -1443,8 +1443,8 @@ textarea::-webkit-scrollbar-thumb:hover {
     }
 
     .about-hero__logo {
-        width: 72px;
-        height: 72px;
+        width: 144px;
+        height: 144px;
     }
 
     .about-hero__title {

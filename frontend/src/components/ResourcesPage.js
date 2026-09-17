@@ -75,8 +75,7 @@ export function ResourcesListPage({ signedIn, onSignOut }) {
         <header className="news__intro">
           <h1>Resources</h1>
           <p>
-            Short, practical guides. No jargon, no upsell, and every fact linked to where it came
-            from. If you need someone right now, go to <Link to="/help">Get help</Link>.
+            Short, practical guides. If you need someone right now, go to <Link to="/help">get help</Link>.
           </p>
         </header>
 
