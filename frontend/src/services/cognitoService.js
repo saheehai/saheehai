@@ -18,6 +18,7 @@ import {
   CognitoUserPool,
 } from 'amazon-cognito-identity-js';
 
+import { LAST_UPDATED as POLICY_VERSION } from '../content/legal';
 import { solveChallenge } from './turnstileService';
 
 const USER_POOL_ID = process.env.REACT_APP_COGNITO_USER_POOL_ID || '';
@@ -72,18 +73,37 @@ function friendlyError(err) {
       // Cognito's PreventUserExistenceErrors should mask this, but do not
       // rely on configuration to avoid confirming whether an account exists.
       return new Error('That email and password do not match.');
+    case 'UserLambdaValidationException': {
+      // The PreSignUp trigger's own words, minus the SDK's wrapper.
+      const reason = (err?.message || '')
+        .replace(/^PreSignUp failed with error /, '')
+        .replace(/\.$/, '');
+      return new Error(reason || 'Sign-up was refused.');
+    }
     default:
       return new Error(err?.message || 'Something went wrong. Please try again.');
   }
 }
 
-/** Create an account. Requires a Turnstile challenge. */
-export function signUp(email, password) {
+/**
+ * Create an account. Requires a Turnstile challenge and both consent boxes.
+ *
+ * Consent is recorded twice on purpose. The custom attributes stay on the
+ * account, so a data export shows what was agreed and to which version of
+ * the policies. The clientMetadata copy is what the PreSignUp trigger checks,
+ * because a script can call Cognito without ever seeing the form.
+ */
+export function signUp(email, password, consent = {}) {
+  if (!consent.over18 || !consent.readPolicies) {
+    return Promise.reject(new Error('Please tick both boxes to create an account.'));
+  }
   return solveChallenge().then(
     (turnstileToken) =>
       new Promise((resolve, reject) => {
         const attributes = [
           new CognitoUserAttribute({ Name: 'email', Value: email.trim().toLowerCase() }),
+          new CognitoUserAttribute({ Name: 'custom:age_attested', Value: 'true' }),
+          new CognitoUserAttribute({ Name: 'custom:policies_accepted', Value: POLICY_VERSION }),
         ];
 
         userPool().signUp(
@@ -95,9 +115,13 @@ export function signUp(email, password) {
             if (err) return reject(friendlyError(err));
             resolve({ email: result.user.getUsername(), confirmed: result.userConfirmed });
           },
-          // The PreSignUp trigger reads the token from here and rejects the
-          // sign-up if it does not verify.
-          { turnstile_token: turnstileToken }
+          // The PreSignUp trigger reads these and rejects the sign-up if the
+          // token does not verify or either consent is missing.
+          {
+            turnstile_token: turnstileToken,
+            age_attested: '18+',
+            policies_accepted: POLICY_VERSION,
+          }
         );
       })
   );

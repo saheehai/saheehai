@@ -721,6 +721,31 @@ textarea:focus-visible {
     color: #D2691E;
 }
 
+.auth-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0 0 12px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--medium-brown);
+    cursor: pointer;
+}
+
+.auth-check input {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    accent-color: var(--brown);
+    cursor: pointer;
+}
+
+.auth-check a {
+    color: var(--brown);
+    text-decoration: underline;
+}
+
 .auth-submit {
     width: 100%;
     margin-top: 8px;
