@@ -49,7 +49,7 @@ privacy-enhanced, and fair with harmful bias managed. What each means here:
 | Secure and resilient | Every request is authenticated (Cognito JWT), sign-up is gated by Turnstile and a server-side trigger, the server holds conversation history so a client cannot forge the model's own turns, CORS is one origin, IAM roles are scoped to what each function needs. | `backend/auth.py`, `backend/presignup.py`, `backend/lambda_function.py`, `infra/backend.yaml` | The API is not yet behind CloudFront, so the geo signal and origin check are partial (DEPLOYMENT.md). |
 | Accountable and transparent | People are told they are talking to AI before the first message, in the Terms, and by the companion itself. The whole system is open source, including the prompt. A named nonprofit board is accountable. | `DisclaimerModal.js`; Terms §5; prompt "Ethical commitments"; `/team` | Board members are not yet named on the site. |
 | Explainable and interpretable | Not applicable in the usual sense: there is no automated decision about a person to explain. What the companion is and is not is stated plainly on every surface. | Terms §5, About page, Resources hub | |
-| Privacy-enhanced | The model receives only the current conversation; nothing is used to train it (Bedrock's policy, invocation logging off). Logs hold no message text and expire in 30 days. Anyone can get a copy of their data or have it deleted. | COMPLIANCE.md "What we collect"; `backend/data_request.py` | |
+| Privacy-enhanced | The model receives only the current conversation and, if set, the person's chosen nickname; nothing is used to train it (Bedrock's policy, invocation logging off). Logs hold no message text and expire in 30 days. Anyone can download their data or delete it from the Account page. | COMPLIANCE.md "What we collect"; `backend/account.py`, `backend/data_request.py` | |
 | Fair, harmful bias managed | The prompt requires inclusive, gender-neutral language and no assumptions about identity or beliefs, and refuses dehumanising framing. The service is free, so cost does not decide who gets it. | prompt "Inclusivity", "Cultural sensitivity" | No bias testing of outputs across groups. See MEASURE. |
 
 ## The four functions
@@ -110,12 +110,12 @@ against it.
 | 2.3 Dangerous, violent or hateful content | Medium. | Prompt forbids it; the model's safety training; a daily cap limits probing |
 | 2.4 Data privacy | **High.** People share health information. | Nothing is used for training; the model sees only the current conversation; logs hold no text; export and delete on request; 30-day log expiry |
 | 2.5 Environmental impact | Low. Short conversations, capped per day, one model call per message. | Output capped at 1000 tokens |
-| 2.6 Harmful bias and homogenisation | Medium. | Inclusive-language rules in the prompt; no personalisation, so the same care for everyone. Untested; see MEASURE 2 |
+| 2.6 Harmful bias and homogenisation | Medium. | Inclusive-language rules in the prompt. The only personalisation is the nickname a person chooses for themselves; nothing about them is inferred or stored to steer replies. Untested; see MEASURE 2 |
 | 2.7 Human-AI configuration | **High.** Over-reliance on a chat instead of care is the central risk of this product. | Companion is told to avoid dependency and to suggest closing the app; beta label; disclaimer before first use; crisis line on every page; daily message cap; idle sign-out |
 | 2.8 Information integrity | Medium. | Referral resources are fixed text; guides link every fact to its source, carry a Draft label until reviewed, and name their reviewer; the companion cannot browse |
-| 2.9 Information security | Medium. Prompt injection via forged history was the 2026-09 abuse vector. | History is server-held; every call authenticated; input length capped; no tools or plugins for the model |
+| 2.9 Information security | Medium. Prompt injection via forged history was the 2026-09 abuse vector. The nickname is the one piece of user text that reaches the system prompt. | History is server-held; every call authenticated; input length capped; no tools or plugins for the model. The nickname is at most 30 characters of letters, digits, spaces and a little punctuation (`backend/profile_rules.py`), is quoted inside one sentence about the person, and can only affect that person's own conversation |
 | 2.10 Intellectual property | Low. | The model is licensed through Bedrock; the prompt is our own |
-| 2.11 Obscene, degrading or abusive content | Medium. | Prompt scope; model safety training; Terms §9 acceptable use; quota |
+| 2.11 Obscene, degrading or abusive content | Medium. A profile picture is user-supplied and not screened. | Prompt scope; model safety training; Terms §9 acceptable use, which names pictures and nicknames and says such accounts are closed; the picture is shown only to its owner, never to another person or to the model; quota |
 | 2.12 Value chain and component integration | Medium. One third-party model we do not control. | Pinned model id; provider chosen for its data policy; the prompt is versioned in the repo so a model swap can be re-tested |
 
 ## Practices we are adopting from the framework
@@ -142,6 +142,15 @@ an owner. Dates are targets, not promises.
    anything that harmed or nearly harmed a person, what changed after, and
    who was told. The 2026-09 abuse incident is the first entry.
 6. **Name the board on the site** (GOVERN 2). Owner: board.
+
+## Model and prompt change log
+
+- **2026-09-17.** The system prompt gains a second block when the person
+  has set a nickname on the Account page: one sentence saying what they
+  asked to be called, with the name quoted. `system_prompt.txt` itself is
+  unchanged; the block is added in `backend/lambda_function.py`. Behaviour
+  test set: not yet in place (practice 1 above), so the change was checked
+  by unit tests on the block's shape and by reading a handful of replies.
 
 ## Review
 
