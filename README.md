@@ -54,13 +54,14 @@ Two folders at the top of the repo are content, not code:
 - [`news/`](news/): short posts about what is changing. Copy
   `news/_template.md` to a file named like `2026-09-16-back-online.md` (the
   date it goes up, then a short slug), fill in the front matter, write, merge.
-- [`resources/`](resources/): plain-language guides, in two tracks, "paying
-  for care" and "mental health basics". Copy `resources/_template.md` to a
-  file named like `hospital-charity-care.md` (no date: guides are updated,
-  not dated). A guide starts as `status: draft`, is shown on the site with a
-  "Draft" label so a reviewer can read it in place, and becomes `published`
-  with a `reviewed_by` line once a clinician or benefits counselor has read
-  it.
+- [`resources/`](resources/): plain-language guides, in three tracks,
+  "paying for care", "mental health basics" and "the foundations". Copy
+  `resources/_template.md` to a file named like `hospital-charity-care.md`
+  (no date: guides are updated, not dated). A guide starts as
+  `status: draft`, is shown on the site with a "Draft" label so a reviewer
+  can read it in place, and becomes `published` with a `reviewed_by` line
+  once a clinician or benefits counselor has read it. An optional `order`
+  number puts a guide ahead of its track-mates; without it, newest first.
 
 Nothing else to touch: the build turns both folders into the JSON the pages
 read, writes the sitemap, and prerenders a static HTML shell per route for

@@ -61,6 +61,7 @@ URL ended up baked into every published bundle.
 | `ci.yml` | every PR, and pushes to `main` | Builds the frontend with warnings-as-errors, lints/tests the backend, validates templates, and fails if a hardcoded API endpoint reappears in source. |
 | `deploy-frontend.yml` | push to `main` touching `frontend/**` | Builds, syncs to S3, invalidates CloudFront, smoke-tests the site. |
 | `deploy-backend.yml` | push to `main` touching `backend/**` or `infra/backend.yaml` | `sam build && sam deploy`, then verifies an unauthenticated `POST /chat` is rejected. |
+| `data-request.yml` | manual, `saheehai` only | Exports or deletes everything held about one email address. See "Data requests" below. |
 
 Path filters mean a frontend-only commit never redeploys the backend, and
 vice versa. Both deploy workflows use `concurrency` groups so two runs cannot
@@ -164,10 +165,18 @@ require a pull request, and disallow direct pushes.
 
 ```bash
 cd frontend
-REACT_APP_API_ENDPOINT=<endpoint> npm run build
-aws s3 sync build/ s3://saheeh.ai --delete
-aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
+REACT_APP_API_ENDPOINT=<endpoint> \
+REACT_APP_TURNSTILE_SITE_KEY=<key> \
+REACT_APP_COGNITO_USER_POOL_ID=<pool> \
+REACT_APP_COGNITO_CLIENT_ID=<client> \
+CLOUDFRONT_DISTRIBUTION_ID=<id> npm run deploy
 ```
+
+`npm run deploy` builds and then runs `scripts/deploy.js`, which uploads in
+the same order and with the same cache headers as the workflow: hashed
+assets first, then the JSON and sitemap, then the extensionless per-route
+HTML, then `index.html`. A plain `aws s3 sync` would upload the per-route
+HTML with the wrong content type and no cache headers.
 
 Use this only when Actions is unavailable. A manual deploy makes the live site
 diverge from `main`, so follow it with a real commit.
@@ -275,6 +284,93 @@ One-time setup, in the console or CLI, in `us-east-1`:
 Sending an actual newsletter is manual for now: export confirmed addresses
 from the table and send through SES or a tool of your choice, including each
 address's `/subscribe/unsubscribe?token=…` link in the footer.
+
+## Data requests (export and delete)
+
+The Privacy Policy promises anyone a copy of what we hold about them and
+deletion of their account "and everything in it" within 30 days, with an
+answer within 45. The `Data request` workflow is how those promises are kept.
+It runs `backend/data_request.py` under the deploy role, so it can reach
+Cognito and every table, and only the `saheehai` GitHub account can start it.
+Every run is an audit record: who, when, which action, which issue.
+
+**The repository is public.** Run logs, step summaries and artifacts can be
+read by anyone signed in to GitHub. The workflow masks the address, prints
+counts only, and encrypts the export before uploading it. Keep it that way:
+never put an address or a name in the `reference` input, and never add a
+step that echoes an input.
+
+### One-time setup
+
+- Add `DATA_EXPORT_PASSPHRASE` as a secret on the **production environment**
+  (Settings → Environments → production → Environment secrets), not at the
+  repository level. Use a long random string and keep it in a password
+  manager; without it the export cannot be decrypted.
+- Confirm the production environment's deployment-branch rule is "Selected
+  branches: main". That rule, not the workflow file, is what stops a branch
+  from running this with real credentials.
+- Optional but recommended before the first delete: turn on point-in-time
+  recovery for the two tables the template does not manage, so a wrong
+  delete has a 35-day undo:
+
+  ```bash
+  aws dynamodb update-continuous-backups --table-name saheeh_chat_history \
+    --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true
+  aws dynamodb update-continuous-backups --table-name saheeh_journal \
+    --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true
+  ```
+
+### Handling a request
+
+1. **It arrives as an issue** (contact links fall back to the tracker until
+   `CONTACT_EMAIL` is set). The address is now public. Once the request is
+   done, edit it out of the issue.
+2. **Check the person controls the address.** A GitHub account proves
+   nothing about an email. Ask for one of these, then move on only when it
+   checks out:
+   - Account holder: sign in and save a journal entry titled `verify #<issue>`.
+     Run an export; the entry is in it.
+   - Newsletter only: submit the form on `/support` with that address and
+     click the confirmation link; the export's `confirmed_at` moves.
+3. **Run the workflow.** Actions → Data request → Run workflow. Branch
+   `main`, the email, the action, and the issue number as `reference`
+   (e.g. `#42`). For `delete`, type the email again in `confirm`; a mismatch
+   is refused before any credentials are issued.
+4. **Export.** Download the artifact within 7 days and decrypt it:
+
+   ```bash
+   gpg --decrypt export.json.gpg > export.json
+   ```
+
+   Read it through, then send it to the address on record and nowhere else,
+   for example from the verified SES identity. Delete your local copies.
+5. **Delete.** Run an **export first**: it is the only undo unless PITR is on.
+   Then run `delete`. The summary lists what was removed and a `remaining`
+   count for each store; every `remaining` value must be 0. If the person
+   was signed in during the run, a still-valid session can write rows for up
+   to an hour, so run `delete` again after that. Reply on the issue, then
+   edit the address out of it.
+6. **Deadlines.** Delete within 30 days of the request and answer within 45.
+   The issue's open date is the clock.
+
+### What the tool does not reach
+
+- CloudWatch access and function logs: IP address, account id, route and
+  time, never message text. They expire on their own within 30 days.
+- Point-in-time-recovery backups of the newsletter table, and of chat and
+  journal if you turned it on: 35 days.
+- The encrypted export artifact: 7 days.
+- SES bounce and complaint suppression entries, and whatever Cloudflare
+  Turnstile keeps under its own policy.
+- The text of the GitHub issue itself, until you edit it.
+
+### Follow-ups
+
+The deploy role's `dynamodb:*` and `cognito-idp:*` on every resource is more
+than this needs; a narrower role for data requests is worth doing. The chat
+table has no index on `user_id`, so the tool scans it; a keys-only index
+fixes that if the table grows. A monitored contact inbox would stop requests
+landing in a public tracker.
 
 ## Geographic restriction
 

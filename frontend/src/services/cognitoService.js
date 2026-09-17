@@ -210,13 +210,4 @@ export function getIdToken() {
   });
 }
 
-/** Signed-in user's email, or null. */
-export function currentEmail() {
-  try {
-    return userPool().getCurrentUser()?.getUsername() ?? null;
-  } catch {
-    return null;
-  }
-}
-
 export const isConfigured = () => Boolean(USER_POOL_ID && CLIENT_ID);

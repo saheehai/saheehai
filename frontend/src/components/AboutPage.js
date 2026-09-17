@@ -162,10 +162,10 @@ function AboutPage({ signedIn, onSignOut }) {
         <section className="about-hero">
           <img
             className="about-hero__logo"
-            src="/saheeh-favicon/favicon.svg"
+            src="/saheeh-favicon/brain-logo.svg"
             alt=""
-            width="96"
-            height="96"
+            width="192"
+            height="192"
           />
           <div>
             <h1 className="about-hero__title">Care should be easier to reach.</h1>

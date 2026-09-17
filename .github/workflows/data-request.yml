@@ -1,0 +1,137 @@
+name: Data request
+
+# Serves a privacy request (Privacy Policy sections 4 and 7) for one email
+# address: export everything held about it, or delete it. Manual only.
+#
+# Who can run it: the job runs in the `production` environment, so it uses
+# the same OIDC role as a deploy and is pinned to `main` by that environment's
+# deployment-branch rule, and the job-level `if` limits it to the repository
+# owner's account. The run itself is the audit record: who, when, which
+# action, which issue.
+#
+# This repository is public, so these run logs are public. Nothing here, and
+# nothing backend/data_request.py prints, may contain the address or any
+# stored content. The address is masked before any step declares it, the
+# summary holds counts only, and the export is encrypted before upload. The
+# runbook is in DEPLOYMENT.md under "Data requests".
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: Email address the request is about
+        required: true
+        type: string
+      action:
+        description: What to do
+        required: true
+        type: choice
+        options: [export, delete]
+        default: export
+      confirm:
+        description: 'delete only: type the email address again, exactly'
+        required: false
+        type: string
+        default: ''
+      reference:
+        description: 'Issue number for the audit trail, e.g. "#42". Nothing else: this is public.'
+        required: true
+        type: string
+
+concurrency:
+  group: data-request
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  run:
+    # No email in the job name: it shows in the public run list.
+    name: ${{ inputs.action }} ${{ inputs.reference }}
+    runs-on: ubuntu-latest
+    environment: production
+    # The environment's deployment-branch rule is what really pins this to
+    # main; the ref check is a second lock in case that rule is ever loosened.
+    if: github.actor == 'saheehai' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Mask the address in every later log line
+        # Reads the inputs at runtime rather than interpolating them into the
+        # script text, so the values never appear in a printed command.
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { email, confirm } = context.payload.inputs;
+            core.setSecret(email);
+            if (confirm) core.setSecret(confirm);
+
+      - name: Refuse a delete that was not confirmed
+        if: inputs.action == 'delete' && inputs.confirm != inputs.email
+        run: |
+          echo "::error::For delete, the confirm input must match the email input exactly."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install boto3
+        run: python -m pip install --quiet --upgrade pip boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          role-session-name: gha-data-request-${{ github.run_id }}
+
+      - name: Run
+        working-directory: backend
+        env:
+          DATA_REQUEST_EMAIL: ${{ inputs.email }}
+          DATA_REQUEST_CONFIRM: ${{ inputs.confirm }}
+          DATA_REQUEST_ACTION: ${{ inputs.action }}
+          DATA_REQUEST_REFERENCE: ${{ inputs.reference }}
+          COGNITO_USER_POOL_ID: ${{ vars.COGNITO_USER_POOL_ID }}
+          # config.py's defaults for the quota and subscriber tables are the
+          # pre-stack names; the live tables are named after the stack.
+          CHAT_TABLE: ${{ vars.CHAT_TABLE || 'saheeh_chat_history' }}
+          JOURNAL_TABLE: ${{ vars.JOURNAL_TABLE || 'saheeh_journal' }}
+          QUOTA_TABLE: ${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}-quota
+          SUBSCRIBER_TABLE: ${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}-subscribers
+        run: |
+          python data_request.py \
+            --email "$DATA_REQUEST_EMAIL" \
+            --action "$DATA_REQUEST_ACTION" \
+            --confirm "$DATA_REQUEST_CONFIRM" \
+            --reference "$DATA_REQUEST_REFERENCE" \
+            --out "$RUNNER_TEMP/export.json" \
+            --summary "$GITHUB_STEP_SUMMARY"
+
+      - name: Encrypt the export
+        # Artifacts on a public repository can be downloaded by any signed-in
+        # GitHub user. The passphrase lives only in the production environment.
+        if: inputs.action == 'export'
+        env:
+          PASSPHRASE: ${{ secrets.DATA_EXPORT_PASSPHRASE }}
+        run: |
+          if [ -z "$PASSPHRASE" ]; then
+            echo "::error::DATA_EXPORT_PASSPHRASE is not set on the production environment."
+            exit 1
+          fi
+          printf '%s' "$PASSPHRASE" | gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --pinentry-mode loopback --passphrase-fd 0 \
+            --output "$RUNNER_TEMP/export.json.gpg" "$RUNNER_TEMP/export.json"
+          shred -u "$RUNNER_TEMP/export.json"
+
+      - name: Upload the encrypted export
+        if: inputs.action == 'export'
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-export-${{ github.run_id }}
+          path: ${{ runner.temp }}/export.json.gpg
+          retention-days: 7
+          if-no-files-found: error
