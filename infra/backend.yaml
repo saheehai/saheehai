@@ -86,14 +86,14 @@ Parameters:
 
   ChatUserIndexName:
     Type: String
-    Default: by_user
+    Default: user-conversations-index
     Description: >-
-      Keys-only global secondary index on the chat table (hash user_id,
-      range timestamp). The chat table is not managed by this stack, so the
-      index is created by hand (DEPLOYMENT.md, "Account routes"). The
-      function queries it to find one person's conversations for export and
-      delete; without it those routes fail, since the function deliberately
-      cannot scan the table.
+      Global secondary index on the chat table (hash user_id, range
+      timestamp). The chat table is not managed by this stack; the index
+      already exists on the live table (DEPLOYMENT.md, "Account routes").
+      The function queries it to find one person's conversations for export
+      and delete; without it those routes fail, since the function
+      deliberately cannot scan the table.
 
   LogRetentionDays:
     Type: Number

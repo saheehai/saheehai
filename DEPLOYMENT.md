@@ -379,23 +379,24 @@ The Account page serves export and delete to the signed-in person directly
 things about the setup are not in the template.
 
 **The chat table's user index.** The function finds one person's
-conversations through a keys-only global secondary index on
-`saheeh_chat_history`, named by the `ChatUserIndexName` parameter
-(default `by_user`). The table is not managed by the stack, so the index is
-created once by hand. Without it every account route that touches chat
-fails with a 502, because the function has no permission to scan. It was
-created 2026-09-17; to recreate it:
+conversations through a global secondary index on `saheeh_chat_history`
+(hash `user_id`, range `timestamp`), named by the `ChatUserIndexName`
+parameter. The live table already carries one, `user-conversations-index`,
+left from the original console setup, and that is the default. The table is
+not managed by the stack, so if the table is ever rebuilt the index must be
+recreated by hand before the account routes work; without it every account
+route that touches chat fails with a 502, because the function has no
+permission to scan. A keys-only projection is enough:
 
 ```bash
 aws dynamodb update-table --table-name saheeh_chat_history \
   --attribute-definitions AttributeName=user_id,AttributeType=S AttributeName=timestamp,AttributeType=N \
-  --global-secondary-index-updates '[{"Create":{"IndexName":"by_user","KeySchema":[{"AttributeName":"user_id","KeyType":"HASH"},{"AttributeName":"timestamp","KeyType":"RANGE"}],"Projection":{"ProjectionType":"KEYS_ONLY"}}}]'
+  --global-secondary-index-updates '[{"Create":{"IndexName":"user-conversations-index","KeySchema":[{"AttributeName":"user_id","KeyType":"HASH"},{"AttributeName":"timestamp","KeyType":"RANGE"}],"Projection":{"ProjectionType":"KEYS_ONLY"}}}]'
 aws dynamodb describe-table --table-name saheeh_chat_history \
   --query 'Table.GlobalSecondaryIndexes[].{name:IndexName,status:IndexStatus}'
 ```
 
-Wait for `ACTIVE` before relying on it. Rows written before the index
-existed are backfilled by DynamoDB automatically.
+Wait for `ACTIVE` before relying on it.
 
 **Order of deletion.** `POST /account/delete` removes the person's rows and
 returns what is left; the browser then deletes the Cognito user with the

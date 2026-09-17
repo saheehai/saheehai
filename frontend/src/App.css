@@ -2383,7 +2383,9 @@ input.sr-only:focus-visible + .account-avatar__pick {
 }
 
 @media (max-width: 640px) {
+    /* A 40px target, since the label is gone and the picture is the button. */
     .account-btn {
+        box-sizing: border-box;
         min-width: 40px;
         min-height: 40px;
         padding: 4px 8px 4px 6px;
