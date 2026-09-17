@@ -51,6 +51,8 @@ ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "https://saheeh.ai")
 # --- Storage ---------------------------------------------------------------
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
+# Only the data-request tool reads this; the functions never talk to Cognito.
+COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
 CHAT_TABLE = os.environ.get("CHAT_TABLE", "saheeh_chat_history")
 JOURNAL_TABLE = os.environ.get("JOURNAL_TABLE", "saheeh_journal")
 QUOTA_TABLE = os.environ.get("QUOTA_TABLE", "saheeh_quota")

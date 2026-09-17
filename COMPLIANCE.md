@@ -27,6 +27,7 @@ Experiments; the site collects nothing beyond a confirmed newsletter address.
 | Data | Where | Retention | Notes |
 |---|---|---|---|
 | Email, password hash | Cognito user pool (us-east-1) | Life of account | SRP sign-in; password never reaches our code |
+| Consent record: 18+ attestation, date of the Terms accepted | Cognito user attributes `custom:age_attested`, `custom:policies_accepted` | Life of account | Written once at sign-up, required by the PreSignUp trigger, immutable |
 | Chat messages and replies | DynamoDB `saheeh_chat_history` | Life of account | Keyed by Cognito `sub`; conversation ownership enforced server-side |
 | Journal entries, mood | DynamoDB `saheeh_journal` | Life of account | Keyed by Cognito `sub` |
 | Daily quota counters | DynamoDB `saheehai-backend-quota` | ~2 days (TTL) | No content |
@@ -153,7 +154,20 @@ No cookie banner is needed while there are no cookies.
 | "Not available in [state]" | `backend/geo.py` + CloudFront viewer headers |
 | "Nothing is sent until you click the confirmation link" | `backend/subscribe.py`: pending until `/subscribe/confirm` |
 | "Unsubscribing deletes the address within 30 days" | `expires_at` TTL set on unsubscribe; table TTL enabled |
+| "See what we hold about you, and get a copy" | `backend/data_request.py --action export`, run by `.github/workflows/data-request.yml`; runbook in DEPLOYMENT.md |
+| "Delete your account, chat history and journal within 30 days" | `backend/data_request.py --action delete`: tables first, Cognito last, then a remaining-rows check; same workflow |
+| "You must be 18 or older" and "you agree to the Terms" | Two separate boxes on sign-up; `backend/presignup.py` rejects a sign-up without them; recorded as `custom:age_attested` and `custom:policies_accepted` |
 | "You are talking to an AI" | `DisclaimerModal`, Terms §5 |
+
+## Operational access
+
+Data requests run in GitHub Actions under the deploy role, which holds
+`dynamodb:*` and `cognito-idp:*` on every resource. That is enough, and more
+than the job needs; a narrower role is a follow-up. Only the `saheehai`
+GitHub account can start the workflow, and each run is logged with who ran
+it, when, and which issue it served. The repository is public, so the
+workflow prints counts only and encrypts the export before it leaves the
+runner.
 
 ## Review
 

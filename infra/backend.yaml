@@ -139,6 +139,25 @@ Resources:
           AttributeDataType: String
           Required: true
           Mutable: true
+        # Consent record, written by the browser at sign-up and required by
+        # the PreSignUp trigger: that the person is 18 or older, and the date
+        # of the Terms and Privacy Policy they accepted. Immutable so an
+        # export shows exactly what was agreed. Custom attributes can be added
+        # to a live pool but never renamed or removed, so these names are
+        # final. Adding them is an in-place update, not a replacement; check
+        # the change set says Modify before deploying.
+        - Name: age_attested
+          AttributeDataType: String
+          Mutable: false
+          StringAttributeConstraints:
+            MinLength: '1'
+            MaxLength: '8'
+        - Name: policies_accepted
+          AttributeDataType: String
+          Mutable: false
+          StringAttributeConstraints:
+            MinLength: '1'
+            MaxLength: '16'
       LambdaConfig:
         PreSignUp: !GetAtt PreSignUpFunction.Arn
 
@@ -160,8 +179,8 @@ Resources:
         AccessToken: minutes
         IdToken: minutes
         RefreshToken: days
-      ReadAttributes: [email, email_verified]
-      WriteAttributes: [email]
+      ReadAttributes: [email, email_verified, 'custom:age_attested', 'custom:policies_accepted']
+      WriteAttributes: [email, 'custom:age_attested', 'custom:policies_accepted']
 
   # Gates account creation on a Turnstile challenge. Sign-up goes from the
   # browser straight to Cognito, so this trigger is the only place a
