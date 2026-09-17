@@ -11,7 +11,7 @@
 
 import { CONTACT_HREF, CONTACT_LABEL, ORG_NAME } from './site';
 
-export const LAST_UPDATED = '2026-09-16';
+export const LAST_UPDATED = '2026-09-17';
 
 export { ORG_NAME };
 
@@ -251,6 +251,8 @@ the journal), which do need an account.
 **Account information.** Your email address and a password. The password is
 never sent to us in a readable form: sign-in uses a challenge-response
 protocol (SRP) handled by Amazon Cognito, and only a salted hash is stored.
+We also record that you confirmed you are 18 or older, and the date of the
+Terms and this policy that you accepted when you created the account.
 
 **Chat messages (Experiments, beta).** What you write to the companion and
 what it writes back, together with a conversation identifier so a

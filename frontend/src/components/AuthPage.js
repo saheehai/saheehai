@@ -56,6 +56,11 @@ export default function AuthPage({ onAuthenticated }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  // Two separate boxes on sign-up, so each statement is its own deliberate
+  // act: one bundled "I agree to everything" box is weaker evidence of either.
+  const [over18, setOver18] = useState(false);
+  const [readPolicies, setReadPolicies] = useState(false);
+  const consentGiven = over18 && readPolicies;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(() => {
@@ -78,6 +83,8 @@ export default function AuthPage({ onAuthenticated }) {
     setError(null);
     setNotice(message);
     setCode('');
+    setOver18(false);
+    setReadPolicies(false);
   }, []);
 
   const passwordProblem = useMemo(() => {
@@ -114,7 +121,8 @@ export default function AuthPage({ onAuthenticated }) {
           finish();
         } else if (mode === 'signUp') {
           if (passwordProblem) throw new Error(passwordProblem);
-          const { confirmed } = await cognito.signUp(email, password);
+          if (!consentGiven) throw new Error('Please tick both boxes to create an account.');
+          const { confirmed } = await cognito.signUp(email, password, { over18, readPolicies });
           if (confirmed) {
             await cognito.signIn(email, password);
             finish();
@@ -147,7 +155,7 @@ export default function AuthPage({ onAuthenticated }) {
         setBusy(false);
       }
     },
-    [busy, mode, email, password, code, passwordProblem, finish, go]
+    [busy, mode, email, password, code, passwordProblem, consentGiven, over18, readPolicies, finish, go]
   );
 
   const resend = useCallback(async () => {
@@ -222,7 +230,46 @@ export default function AuthPage({ onAuthenticated }) {
 
               {passwordProblem && <p className="auth-hint">{passwordProblem}</p>}
 
-              <button type="submit" disabled={busy} className="auth-submit">
+              {mode === 'signUp' && (
+                <>
+                  <label className="auth-check">
+                    <input
+                      type="checkbox"
+                      checked={over18}
+                      onChange={(e) => setOver18(e.target.checked)}
+                      disabled={busy}
+                      required
+                    />
+                    <span>I am 18 or older.</span>
+                  </label>
+                  <label className="auth-check">
+                    <input
+                      type="checkbox"
+                      checked={readPolicies}
+                      onChange={(e) => setReadPolicies(e.target.checked)}
+                      disabled={busy}
+                      required
+                    />
+                    <span>
+                      I have read the{' '}
+                      <Link to="/legal#privacy" target="_blank" rel="noopener noreferrer">
+                        Privacy Policy
+                      </Link>{' '}
+                      and agree to the{' '}
+                      <Link to="/legal#terms" target="_blank" rel="noopener noreferrer">
+                        Terms
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={busy || (mode === 'signUp' && !consentGiven)}
+                className="auth-submit"
+              >
                 {busy ? 'One moment…' : copy.submit}
               </button>
             </form>
