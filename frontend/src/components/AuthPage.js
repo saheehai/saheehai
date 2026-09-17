@@ -266,7 +266,7 @@ export default function AuthPage({ onAuthenticated }) {
 
           <p className="auth-footnote">
             Saheeh AI is a wellness companion, not a therapist or medical professional. If you
-            are in crisis, please contact your local emergency services or a crisis line.
+            are in crisis, call or text 988 (US) or your local emergency number.
             <br />
             <Link to="/" className="auth-footnote__link">
               About Saheeh AI

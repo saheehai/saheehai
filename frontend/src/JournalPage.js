@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import awsService from "./services/awsService";
 import { History } from "lucide-react";
 import SiteNav from "./components/SiteNav";
+import SiteFooter from "./components/SiteFooter";
 import Alert from "./components/Alert";
 import FormInput from "./components/FormInput";
 import MoodPicker from "./components/MoodPicker";
 import { COLORS, COMMON_STYLES, STORAGE_KEYS } from "./utils/constants";
+import Sprout from './components/Sprout';
 
 const isToday = (timestamp) => {
   const entryDate = new Date(timestamp);
@@ -140,9 +142,7 @@ function JournalPage({ onSignOut }) {
 
       <div className="page-content">
         {loading ? (
-          <div style={{ textAlign: 'center', color: COLORS.darkBrown, fontSize: '18px' }}>
-            Loading...
-          </div>
+          <Sprout label="Loading your journal" />
         ) : (
           <div>
             <div className="page-heading">
@@ -217,6 +217,8 @@ function JournalPage({ onSignOut }) {
           </div>
         )}
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

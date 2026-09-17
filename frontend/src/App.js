@@ -14,9 +14,16 @@ import JournalPage from "./JournalPage";
 import JournalArchivePage from "./JournalArchivePage";
 import AboutPage from "./components/AboutPage";
 import LegalPage from "./components/LegalPage";
+import HelpPage from "./components/HelpPage";
+import MissionPage from "./components/MissionPage";
+import SupportPage from "./components/SupportPage";
+import TeamPage from "./components/TeamPage";
+import SubscribeConfirmPage from "./components/SubscribeConfirmPage";
 import { NewsArticlePage, NewsListPage } from "./components/NewsPage";
+import { ResourceArticlePage, ResourcesListPage } from "./components/ResourcesPage";
 import SiteNav from "./components/SiteNav";
 import DisclaimerModal from "./components/DisclaimerModal";
+import Sprout from "./components/Sprout";
 import MessageBubble from "./components/MessageBubble";
 import TypingIndicator from "./components/TypingIndicator";
 import ChatInputBar from "./components/ChatInputBar";
@@ -296,7 +303,11 @@ function App() {
   useIdleSignOut(isAuthenticated === true, handleIdle);
 
   if (isAuthenticated === null) {
-    return <div className="app-booting" aria-busy="true" />;
+    return (
+      <div className="app-booting" aria-busy="true">
+        <Sprout />
+      </div>
+    );
   }
 
   return (
@@ -316,13 +327,42 @@ function App() {
           element={<NewsArticlePage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
         />
         <Route
+          path="/help"
+          element={<HelpPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/resources"
+          element={<ResourcesListPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/resources/:slug"
+          element={<ResourceArticlePage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/support"
+          element={<SupportPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/team"
+          element={<TeamPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/mission"
+          element={<MissionPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
+          path="/subscribe/:action"
+          element={<SubscribeConfirmPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
+        <Route
           path="/legal"
           element={<LegalPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
         />
         <Route path="/privacy" element={<Navigate to="/legal#privacy" replace />} />
         <Route path="/terms" element={<Navigate to="/legal#terms" replace />} />
         <Route path="/about" element={<Navigate to="/" replace />} />
-        <Route path="/mission" element={<Navigate to="/" replace />} />
+        <Route path="/donate" element={<Navigate to="/support" replace />} />
+        <Route path="/crisis" element={<Navigate to="/help" replace />} />
 
         <Route
           path="/signin"

@@ -1,10 +1,11 @@
 /**
  * Cloudflare Turnstile challenge.
  *
- * Used only at sign-up. Account creation goes from the browser straight to
- * Cognito, and a PreSignUp trigger verifies this token server-side before
- * letting the account exist — without it, accounts could be minted in bulk
- * and the per-account quota would mean nothing.
+ * Used at sign-up and on the newsletter form. Account creation goes from the
+ * browser straight to Cognito, and a PreSignUp trigger verifies this token
+ * server-side before letting the account exist — without it, accounts could
+ * be minted in bulk and the per-account quota would mean nothing. The
+ * newsletter route verifies its own token the same way.
  *
  * The widget stays hidden unless Cloudflare actually wants the visitor to do
  * something. A "Verify you are human" box parked in the corner of every page
@@ -22,8 +23,8 @@ const TURNSTILE_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?ren
 const SITE_KEY = process.env.REACT_APP_TURNSTILE_SITE_KEY || '';
 
 // Echoed back by siteverify and checked server-side, so a token minted for
-// another surface cannot be replayed at sign-up.
-const ACTION = 'signup';
+// one surface cannot be replayed against another.
+const DEFAULT_ACTION = 'signup';
 
 let scriptPromise = null;
 let widgetId = null;
@@ -78,7 +79,7 @@ const hide = () => {
 };
 
 /** Solve a challenge and resolve with the token. */
-export function solveChallenge() {
+export function solveChallenge(action = DEFAULT_ACTION) {
   if (!SITE_KEY) {
     return Promise.reject(
       new Error('REACT_APP_TURNSTILE_SITE_KEY is not set. Sign-up cannot be verified.')
@@ -113,7 +114,7 @@ export function solveChallenge() {
         try {
           widgetId = turnstile.render(container(), {
             sitekey: SITE_KEY,
-            action: ACTION,
+            action,
             appearance: 'interaction-only',
             // Run only when asked, and never again on our behalf. The token
             // is consumed the moment it arrives, so a refreshed one would

@@ -1,17 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, FlaskConical, MessageCircle } from 'lucide-react';
+import { ChevronDown, FlaskConical, MessageCircle, NotebookPen } from 'lucide-react';
 
 /**
  * "Experiments" dropdown in the header.
  *
- * The chat is the first experiment; it is reached from here rather than from
- * a top-level button so new experiments can join the list without the header
- * growing a button each time.
+ * The chat and the journal are the experiments; they are reached from here
+ * rather than from top-level buttons so new experiments can join the list
+ * without the header growing a button each time, and so the beta things
+ * stay together, which is how the Terms describe them.
  */
 // Everything in here is beta, and says so: the companion is a secondary
 // feature, not the product, and nobody should mistake it for care.
-const ITEMS = [{ label: 'Chat', tag: 'beta', to: '/chat', Icon: MessageCircle }];
+const ITEMS = [
+  { label: 'Chat', tag: 'beta', to: '/chat', Icon: MessageCircle },
+  { label: 'Journal', tag: 'beta', to: '/journal', Icon: NotebookPen },
+];
 
 function ExperimentsMenu({ active = false }) {
   const navigate = useNavigate();
