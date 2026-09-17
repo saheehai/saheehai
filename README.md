@@ -4,7 +4,7 @@
 
 <br>
 
-**A gentle wellness companion — chat and journal, in one quiet place.**
+**A nonprofit making health information and support easier to reach: free guides to paying for care, a private journal, and an AI companion in beta.**
 
 [saheeh.ai](https://saheeh.ai)
 
@@ -47,14 +47,31 @@ Only what you changed redeploys. The full picture — architecture, the AWS
 setup, and the pipeline's sharper edges — lives in
 [DEPLOYMENT.md](DEPLOYMENT.md).
 
-## Posting news
+## Publishing news and guides
 
-The site's News page is built from the Markdown files in [`news/`](news/).
-To publish a post, copy `news/_template.md` to a new file named like
-`2026-09-16-back-online.md` (the date it goes up, then a short slug), fill in
-the front matter, write the post, and merge. Nothing else to touch: the
-build turns the folder into the JSON the page reads, and a merge deploys it.
-A malformed post fails the build with a message saying which file and why.
+Two folders at the top of the repo are content, not code:
+
+- [`news/`](news/): short posts about what is changing. Copy
+  `news/_template.md` to a file named like `2026-09-16-back-online.md` (the
+  date it goes up, then a short slug), fill in the front matter, write, merge.
+- [`resources/`](resources/): plain-language guides, in two tracks, "paying
+  for care" and "mental health basics". Copy `resources/_template.md` to a
+  file named like `hospital-charity-care.md` (no date: guides are updated,
+  not dated). A guide starts as `status: draft`, is shown on the site with a
+  "Draft" label so a reviewer can read it in place, and becomes `published`
+  with a `reviewed_by` line once a clinician or benefits counselor has read
+  it.
+
+Nothing else to touch: the build turns both folders into the JSON the pages
+read, writes the sitemap, and prerenders a static HTML shell per route for
+crawlers. A malformed file fails the build with a message saying which file
+and why.
+
+Crisis lines and the "find care" list on `/help` live in
+`frontend/src/content/resources.js`; the board on `/team` lives in
+`frontend/src/content/team.json` and the page appears once that list has an
+entry. The contact inbox and EIN, when they exist, go in
+`frontend/src/content/site.js`.
 
 ## A note on care
 
