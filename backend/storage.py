@@ -13,6 +13,10 @@ _dynamodb = boto3.resource("dynamodb", region_name=config.AWS_REGION)
 _chat_table = _dynamodb.Table(config.CHAT_TABLE)
 _journal_table = _dynamodb.Table(config.JOURNAL_TABLE)
 _quota_table = _dynamodb.Table(config.QUOTA_TABLE)
+_profile_table = _dynamodb.Table(config.PROFILE_TABLE)
+
+# Second quota key family, for export and delete (see consume_account_quota).
+ACCOUNT_QUOTA_SUFFIX = "account"
 
 
 class QuotaExceeded(Exception):
@@ -41,7 +45,31 @@ def consume_quota(identity: str) -> dict:
     Returns usage info, or raises QuotaExceeded.
     """
     window = int(time.time()) // config.QUOTA_WINDOW_SECONDS
-    key = f"{identity}#{window}"
+    return _claim(
+        f"{identity}#{window}",
+        window,
+        config.DAILY_MESSAGE_QUOTA,
+        f"Daily limit of {config.DAILY_MESSAGE_QUOTA} messages reached",
+    )
+
+
+def consume_account_quota(identity: str) -> dict:
+    """One unit of the much smaller allowance for export and delete.
+
+    Those read a person's entire history, so they are capped separately from
+    chat: a script cannot spend the chat allowance on them, and a person who
+    has used up their chat messages can still get their data out.
+    """
+    window = int(time.time()) // config.QUOTA_WINDOW_SECONDS
+    return _claim(
+        f"{identity}#{ACCOUNT_QUOTA_SUFFIX}#{window}",
+        window,
+        config.ACCOUNT_ACTION_QUOTA,
+        "You have reached today's limit for this. Please try again tomorrow.",
+    )
+
+
+def _claim(key: str, window: int, limit: int, exceeded: str) -> dict:
     expires_at = (window + 2) * config.QUOTA_WINDOW_SECONDS  # TTL reaps old rows
 
     try:
@@ -51,26 +79,16 @@ def consume_quota(identity: str) -> dict:
             ConditionExpression=(
                 "attribute_not_exists(request_count) OR request_count < :limit"
             ),
-            ExpressionAttributeValues={
-                ":one": 1,
-                ":exp": expires_at,
-                ":limit": config.DAILY_MESSAGE_QUOTA,
-            },
+            ExpressionAttributeValues={":one": 1, ":exp": expires_at, ":limit": limit},
             ReturnValues="UPDATED_NEW",
         )
     except ClientError as exc:
         if exc.response["Error"]["Code"] == "ConditionalCheckFailedException":
-            raise QuotaExceeded(
-                f"Daily limit of {config.DAILY_MESSAGE_QUOTA} messages reached"
-            ) from exc
+            raise QuotaExceeded(exceeded) from exc
         raise
 
     used = int(response["Attributes"]["request_count"])
-    return {
-        "used": used,
-        "limit": config.DAILY_MESSAGE_QUOTA,
-        "remaining": max(0, config.DAILY_MESSAGE_QUOTA - used),
-    }
+    return {"used": used, "limit": limit, "remaining": max(0, limit - used)}
 
 
 def release_quota(identity: str) -> None:
@@ -189,3 +207,48 @@ def get_journal_entries(user_id: str, limit: int = 20) -> list[dict]:
         Limit=limit,
     )
     return response.get("Items", [])
+
+
+# --- Profile ---------------------------------------------------------------
+
+
+def get_profile(user_id: str) -> dict | None:
+    """Nickname and picture for one identity, or None when nothing is set."""
+    item = _profile_table.get_item(Key={"user_id": user_id}).get("Item")
+    if not item:
+        return None
+    return {
+        "nickname": item.get("nickname"),
+        "avatar": item.get("avatar"),
+        "updated_at": item.get("updated_at"),
+    }
+
+
+def save_profile(user_id: str, nickname: str | None, avatar: str | None) -> dict:
+    """Store what is set; an empty profile is removed rather than kept as a blank row."""
+    if not nickname and not avatar:
+        delete_profile(user_id)
+        return {"nickname": None, "avatar": None, "updated_at": None}
+
+    item = {"user_id": user_id, "updated_at": datetime.now(UTC).isoformat()}
+    if nickname:
+        item["nickname"] = nickname
+    if avatar:
+        item["avatar"] = avatar
+    _profile_table.put_item(Item=item)
+    return {"nickname": nickname, "avatar": avatar, "updated_at": item["updated_at"]}
+
+
+def delete_profile(user_id: str) -> int:
+    response = _profile_table.delete_item(Key={"user_id": user_id}, ReturnValues="ALL_OLD")
+    return 1 if response.get("Attributes") else 0
+
+
+def tables() -> dict:
+    """The function's own table objects, for code that takes them as arguments."""
+    return {
+        "chat": _chat_table,
+        "journal": _journal_table,
+        "quota": _quota_table,
+        "profiles": _profile_table,
+    }

@@ -84,6 +84,17 @@ Parameters:
     Default: 50
     Description: Messages per identity per day, enforced in DynamoDB.
 
+  ChatUserIndexName:
+    Type: String
+    Default: by_user
+    Description: >-
+      Keys-only global secondary index on the chat table (hash user_id,
+      range timestamp). The chat table is not managed by this stack, so the
+      index is created by hand (DEPLOYMENT.md, "Account routes"). The
+      function queries it to find one person's conversations for export and
+      delete; without it those routes fail, since the function deliberately
+      cannot scan the table.
+
   LogRetentionDays:
     Type: Number
     Default: 30
@@ -273,13 +284,15 @@ Resources:
       FunctionName: !Sub '${AWS::StackName}-api'
       CodeUri: ../backend/
       Handler: lambda_function.lambda_handler
-      Description: Saheeh AI chat and journal API.
+      Description: Saheeh AI chat, journal and account API.
       Environment:
         Variables:
           ALLOWED_ORIGIN: !Ref AllowedOrigin
           CHAT_TABLE: !Ref ChatTableName
+          CHAT_USER_INDEX: !Ref ChatUserIndexName
           JOURNAL_TABLE: !Ref JournalTableName
           QUOTA_TABLE: !Ref QuotaTable
+          PROFILE_TABLE: !Ref ProfileTable
           DAILY_MESSAGE_QUOTA: !Ref DailyMessageQuota
           ORIGIN_VERIFY_SECRET: !Ref OriginVerifySecret
           GEO_BLOCK_UNKNOWN: !Ref GeoBlockUnknown
@@ -293,6 +306,23 @@ Resources:
         JournalList:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /journal, Method: GET }
+        # The Account page: nickname and picture, and the self-service side
+        # of the Privacy Policy's export and delete promises.
+        ProfileGet:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /profile, Method: GET }
+        ProfileSave:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /profile, Method: POST }
+        AccountExport:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /account/export, Method: GET }
+        AccountDeleteData:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /account/delete-data, Method: POST }
+        AccountDelete:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /account/delete, Method: POST }
         # The same routes under /api, which is the prefix the site's
         # CloudFront distribution forwards; the handler strips it.
         ApiChat:
@@ -304,9 +334,31 @@ Resources:
         ApiJournalList:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /api/journal, Method: GET }
+        ApiProfileGet:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/profile, Method: GET }
+        ApiProfileSave:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/profile, Method: POST }
+        ApiAccountExport:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/account/export, Method: GET }
+        ApiAccountDeleteData:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/account/delete-data, Method: POST }
+        ApiAccountDelete:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/account/delete, Method: POST }
       Policies:
         # Scoped deliberately. The previous role carried BedrockFullAccess,
         # BedrockMarketplaceAccess, and three DynamoDB full-access policies.
+        #
+        # Delete is allowed because the Account page lets a person delete
+        # their own rows, and only ever the rows under their own subject
+        # (account.py). Scan is still absent: one person's conversations are
+        # found through the chat table's user index, never by reading the
+        # table. Cognito is still absent: the browser removes the Cognito
+        # user itself, with the person's own session, after the rows are gone.
         - Version: '2012-10-17'
           Statement:
             - Sid: InvokeOneModel
@@ -320,11 +372,19 @@ Resources:
                 - dynamodb:GetItem
                 - dynamodb:PutItem
                 - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:BatchWriteItem
                 - dynamodb:Query
               Resource:
                 - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ChatTableName}'
                 - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${JournalTableName}'
                 - !GetAtt QuotaTable.Arn
+                - !GetAtt ProfileTable.Arn
+            - Sid: FindOwnConversations
+              Effect: Allow
+              Action: dynamodb:Query
+              Resource:
+                - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ChatTableName}/index/${ChatUserIndexName}'
 
   # Declared explicitly so retention is set. An implicitly created log group
   # never expires, which is how the old one accumulated user content forever.
@@ -472,6 +532,27 @@ Resources:
         AttributeName: expires_at
         Enabled: true
 
+  # One row per account: a nickname and a small picture, both optional, both
+  # shown only to their owner. The picture is stored inline as a data URL the
+  # browser produced (about 10 KB), so there is no bucket, no public URL,
+  # and nothing outside this row to wipe when the account goes. Retained on
+  # stack delete like the user pool: it holds what people chose to be called.
+  ProfileTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${AWS::StackName}-profiles'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
   # Newsletter addresses. Keyed by address so a repeat sign-up is an update,
   # with an index on the emailed token so confirm and unsubscribe links can
   # be resolved without a scan. Unsubscribing sets expires_at 30 days out
@@ -538,3 +619,6 @@ Outputs:
 
   SubscriberTableName:
     Value: !Ref SubscriberTable
+
+  ProfileTableName:
+    Value: !Ref ProfileTable

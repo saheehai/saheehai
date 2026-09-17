@@ -2,11 +2,14 @@
 
 The Privacy Policy promises that anyone can get a copy of what we hold about
 them and can have their account and everything in it deleted within 30 days.
-This is the code behind that promise. It is run by
-.github/workflows/data-request.yml under the deploy role, never by a Lambda:
-the Lambda roles cannot Scan or Delete, so although `sam build` packages this
-file with the functions (CodeUri is the whole backend folder) it is inert
-there.
+This is the code behind that promise. The CLI at the bottom is run by
+.github/workflows/data-request.yml under the deploy role, for requests that
+arrive by email. The collection and delete helpers are also used by
+account.py, which serves the same thing self-service from the Account page:
+there the identity is the caller's own Cognito subject, the chat rows are
+found through the table's user index rather than a scan, and the Cognito
+account is removed by the browser afterwards, so the function still holds no
+Cognito permission.
 
 Two rules shape everything below.
 
@@ -82,6 +85,9 @@ class Clients:
     quota: Any
     subscribers: Any
     user_pool_id: str
+    profiles: Any = None
+    # Name of the keys-only user_id index on the chat table. Empty means scan.
+    chat_index: str = ""
 
 
 @dataclass
@@ -89,6 +95,7 @@ class DeleteResult:
     journal: int = 0
     chat: int = 0
     quota: int = 0
+    profile: int = 0
     subscriber: int = 0
     account: int = 0
     remaining: dict[str, int] = field(default_factory=dict)
@@ -108,6 +115,8 @@ def build_clients() -> Clients:
         quota=dynamodb.Table(config.QUOTA_TABLE),
         subscribers=dynamodb.Table(config.SUBSCRIBER_TABLE),
         user_pool_id=config.COGNITO_USER_POOL_ID,
+        profiles=dynamodb.Table(config.PROFILE_TABLE),
+        chat_index=config.CHAT_USER_INDEX,
     )
 
 
@@ -184,25 +193,54 @@ def collect_journal(clients: Clients, sub: str) -> list[dict]:
 def collect_chat(clients: Clients, sub: str) -> list[dict]:
     """Every chat row for one person.
 
-    The chat table is keyed by conversation, and nothing on the server lists a
-    person's conversations, so this reads the whole table and filters. Fine at
-    today's size; a keys-only index on user_id is the fix if that changes.
+    The chat table is keyed by conversation. With the user index configured,
+    the index gives the person's conversation ids and each conversation is
+    then read in full; every row is still checked against the subject, so a
+    conversation with mixed ownership (which should not exist) leaks nothing.
+    Without the index the whole table is scanned and filtered, which only the
+    operator role may do.
     """
-    return list(
-        _paginate(
-            clients.chat.scan,
-            FilterExpression="user_id = :uid",
-            ExpressionAttributeValues={":uid": sub},
+    if not clients.chat_index:
+        return list(
+            _paginate(
+                clients.chat.scan,
+                FilterExpression="user_id = :uid",
+                ExpressionAttributeValues={":uid": sub},
+            )
         )
+
+    keys = _paginate(
+        clients.chat.query,
+        IndexName=clients.chat_index,
+        KeyConditionExpression="user_id = :uid",
+        ExpressionAttributeValues={":uid": sub},
     )
+    conversation_ids = sorted({row["conversation_id"] for row in keys})
+    rows: list[dict] = []
+    for conversation_id in conversation_ids:
+        rows.extend(
+            row
+            for row in _paginate(
+                clients.chat.query,
+                KeyConditionExpression="conversation_id = :cid",
+                ExpressionAttributeValues={":cid": conversation_id},
+            )
+            if row.get("user_id") == sub
+        )
+    return rows
 
 
 def quota_keys(sub: str, now: float | None = None) -> list[str]:
+    """Candidate quota rows: the chat counters and the account-action counters."""
     window = int(now if now is not None else time.time()) // config.QUOTA_WINDOW_SECONDS
-    return [
-        f"{sub}#{w}"
-        for w in range(window - QUOTA_WINDOWS_BACK, window + QUOTA_WINDOWS_FORWARD + 1)
-    ]
+    windows = range(window - QUOTA_WINDOWS_BACK, window + QUOTA_WINDOWS_FORWARD + 1)
+    return [f"{sub}#{w}" for w in windows] + [f"{sub}#account#{w}" for w in windows]
+
+
+def collect_profile(clients: Clients, sub: str) -> dict | None:
+    if clients.profiles is None:
+        return None
+    return clients.profiles.get_item(Key={"user_id": sub}).get("Item")
 
 
 def collect_quota(clients: Clients, sub: str) -> list[dict]:
@@ -282,19 +320,33 @@ def _newsletter_view(row: dict | None) -> dict | None:
     return {k: row.get(k) for k in keys}
 
 
-def build_export(clients: Clients, email: str, reference: str = "") -> dict:
-    account = find_account(clients, email)
-    chat_rows: list[dict] = []
-    journal_rows: list[dict] = []
-    quota_rows: list[dict] = []
-    if account:
-        journal_rows = collect_journal(clients, account["sub"])
-        chat_rows = collect_chat(clients, account["sub"])
-        quota_rows = collect_quota(clients, account["sub"])
-        if not account["age_attested"]:
-            account = {**account, "consent_note": CONSENT_NOTE}
+def _profile_view(row: dict | None) -> dict | None:
+    if not row:
+        return None
+    return {
+        "nickname": row.get("nickname"),
+        "picture": row.get("avatar"),
+        "updated_at": row.get("updated_at"),
+    }
 
-    journal_rows.sort(key=lambda r: int(r["timestamp"]))
+
+def compose_export(
+    *,
+    email: str,
+    reference: str,
+    account: dict | None,
+    chat_rows: list[dict],
+    journal_rows: list[dict],
+    quota_rows: list[dict],
+    newsletter_row: dict | None,
+    profile_row: dict | None,
+) -> dict:
+    """The export document, from rows already collected.
+
+    Shared by the operator CLI and the self-service route so a person gets
+    the same file either way.
+    """
+    journal_rows = sorted(journal_rows, key=lambda r: int(r["timestamp"]))
     conversations = group_conversations(chat_rows)
 
     return to_plain(
@@ -310,6 +362,7 @@ def build_export(clients: Clients, email: str, reference: str = "") -> dict:
                 ],
             },
             "account": account,
+            "profile": _profile_view(profile_row),
             "chat": {
                 "conversation_count": len(conversations),
                 "message_count": len(chat_rows),
@@ -319,14 +372,40 @@ def build_export(clients: Clients, email: str, reference: str = "") -> dict:
                 "entry_count": len(journal_rows),
                 "entries": [_journal_entry(r) for r in journal_rows],
             },
-            "newsletter": _newsletter_view(find_subscriber(clients, email)),
+            "newsletter": _newsletter_view(newsletter_row),
             "quota": {
                 "windows_checked": QUOTA_WINDOWS_BACK + QUOTA_WINDOWS_FORWARD + 1,
                 "rows_found": len(quota_rows),
-                "note": "Daily message counters, no content. They expire within about two days.",
+                "note": "Daily usage counters, no content. They expire within about two days.",
             },
             "not_included": NOT_INCLUDED,
         }
+    )
+
+
+def build_export(clients: Clients, email: str, reference: str = "") -> dict:
+    account = find_account(clients, email)
+    chat_rows: list[dict] = []
+    journal_rows: list[dict] = []
+    quota_rows: list[dict] = []
+    profile_row: dict | None = None
+    if account:
+        journal_rows = collect_journal(clients, account["sub"])
+        chat_rows = collect_chat(clients, account["sub"])
+        quota_rows = collect_quota(clients, account["sub"])
+        profile_row = collect_profile(clients, account["sub"])
+        if not account["age_attested"]:
+            account = {**account, "consent_note": CONSENT_NOTE}
+
+    return compose_export(
+        email=email,
+        reference=reference,
+        account=account,
+        chat_rows=chat_rows,
+        journal_rows=journal_rows,
+        quota_rows=quota_rows,
+        newsletter_row=find_subscriber(clients, email),
+        profile_row=profile_row,
     )
 
 
@@ -336,6 +415,7 @@ def export_counts(doc: dict) -> dict[str, int]:
         "conversations": doc["chat"]["conversation_count"],
         "chat_messages": doc["chat"]["message_count"],
         "journal_entries": doc["journal"]["entry_count"],
+        "profile": 1 if doc["profile"] else 0,
         "newsletter": 1 if doc["newsletter"] else 0,
         "quota_rows": doc["quota"]["rows_found"],
     }
@@ -372,16 +452,7 @@ def delete_all(clients: Clients, email: str, *, confirm: str) -> DeleteResult:
     account = find_account(clients, email)
 
     if account:
-        sub = account["sub"]
-        result.journal = _batch_delete(
-            clients.journal, collect_journal(clients, sub), ("user_id", "timestamp")
-        )
-        result.chat = _batch_delete(
-            clients.chat, collect_chat(clients, sub), ("conversation_id", "timestamp")
-        )
-        result.quota = sum(
-            _delete_one(clients.quota, {"quota_key": key}) for key in quota_keys(sub)
-        )
+        delete_rows(clients, account["sub"], result)
 
     # Newsletter rows are keyed by address and exist with or without an account.
     result.subscriber = _delete_one(clients.subscribers, {"email": email})
@@ -395,14 +466,54 @@ def delete_all(clients: Clients, email: str, *, confirm: str) -> DeleteResult:
     return result
 
 
+def delete_rows(
+    clients: Clients,
+    sub: str,
+    result: DeleteResult | None = None,
+    *,
+    keep_account_counters: bool = False,
+) -> DeleteResult:
+    """Everything in the tables for one subject: journal, chat, quota, profile.
+
+    The account itself is not touched here. Any failure propagates with the
+    account still in place, so the rows can be found again on a retry.
+
+    `keep_account_counters` leaves the export/delete counters in place. The
+    self-service route sets it, so deleting does not reset the limit on
+    deleting; they hold no content and expire on their own.
+    """
+    result = result or DeleteResult()
+    result.journal = _batch_delete(
+        clients.journal, collect_journal(clients, sub), ("user_id", "timestamp")
+    )
+    result.chat = _batch_delete(
+        clients.chat, collect_chat(clients, sub), ("conversation_id", "timestamp")
+    )
+    keys = quota_keys(sub)
+    if keep_account_counters:
+        keys = [k for k in keys if "#account#" not in k]
+    result.quota = sum(_delete_one(clients.quota, {"quota_key": key}) for key in keys)
+    if clients.profiles is not None:
+        result.profile = _delete_one(clients.profiles, {"user_id": sub})
+    return result
+
+
+def count_rows(clients: Clients, sub: str) -> dict[str, int]:
+    """What the tables still hold for one subject."""
+    return {
+        "journal": len(collect_journal(clients, sub)),
+        "chat": len(collect_chat(clients, sub)),
+        "quota": len(collect_quota(clients, sub)),
+        "profile": 1 if collect_profile(clients, sub) else 0,
+    }
+
+
 def verify_gone(clients: Clients, email: str) -> dict[str, int]:
     """What is still there. A signed-in session can write rows for up to an hour after deletion."""
     account = find_account(clients, email)
-    remaining = {"account": 1 if account else 0, "journal": 0, "chat": 0, "quota": 0}
+    remaining = {"account": 1 if account else 0, "journal": 0, "chat": 0, "quota": 0, "profile": 0}
     if account:
-        remaining["journal"] = len(collect_journal(clients, account["sub"]))
-        remaining["chat"] = len(collect_chat(clients, account["sub"]))
-        remaining["quota"] = len(collect_quota(clients, account["sub"]))
+        remaining.update(count_rows(clients, account["sub"]))
     remaining["subscriber"] = 1 if find_subscriber(clients, email) else 0
     return remaining
 

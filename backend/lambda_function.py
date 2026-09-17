@@ -1,4 +1,4 @@
-"""Saheeh AI backend: /chat and /journal.
+"""Saheeh AI backend: /chat, /journal, /profile and /account.
 
 Request handling rules, all of which the baseline version broke:
 
@@ -11,7 +11,6 @@ Request handling rules, all of which the baseline version broke:
   * Internal error text is never returned to the caller.
 """
 
-import json
 import logging
 import os
 import uuid
@@ -19,10 +18,12 @@ import uuid
 import boto3
 from botocore.exceptions import ClientError
 
+import account
 import auth
 import config
 import geo
 import storage
+from responses import clean_text, error, headers, parse_body, respond
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -32,60 +33,37 @@ _bedrock = boto3.client("bedrock-runtime", region_name=config.AWS_REGION)
 with open(os.path.join(os.path.dirname(__file__), "system_prompt.txt"), encoding="utf-8") as fh:
     SYSTEM_PROMPT = fh.read()
 
-
-# --- HTTP plumbing ---------------------------------------------------------
-
-
-def _headers() -> dict:
-    return {
-        "Content-Type": "application/json",
-        # A single exact origin. The baseline sent "*", which let any page on
-        # the internet drive this API from a visitor's browser.
-        "Access-Control-Allow-Origin": config.ALLOWED_ORIGIN,
-        "Access-Control-Allow-Headers": "Content-Type,Authorization",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Vary": "Origin",
-        "Cache-Control": "no-store",
-    }
-
-
-def _respond(status: int, payload: dict) -> dict:
-    return {"statusCode": status, "headers": _headers(), "body": json.dumps(payload, default=str)}
-
-
-def _error(status: int, message: str) -> dict:
-    """Client-safe errors only.
-
-    Every string reaching this function is one we wrote. Exception text is
-    logged, never returned: the baseline put str(e) in the response body,
-    which leaks table names and stack internals to anyone probing the API.
-    """
-    return _respond(status, {"error": message})
-
-
-def _parse_body(event: dict) -> dict:
-    try:
-        body = json.loads(event.get("body") or "{}")
-    except ValueError:
-        return {}
-    return body if isinstance(body, dict) else {}
-
-
-def _clean_text(value, limit: int) -> str:
-    if not isinstance(value, str):
-        return ""
-    return value.strip()[:limit]
+# Kept short and framed as a fact about the person, not an instruction. The
+# nickname itself is at most 30 characters of letters, digits, spaces and a
+# little punctuation (profile_rules.py): no line breaks, brackets, quotes or
+# markup, so it always reads as a quoted name inside this sentence. That
+# narrows the surface rather than closing it; the daily caps bound the rest.
+# This is the only user-written text that reaches the system prompt.
+NICKNAME_PROMPT = (
+    'The person you are talking with has asked to be called "{nickname}". Use their '
+    "name the way a friend would: naturally, and not in every reply."
+)
 
 
 # --- Routes ----------------------------------------------------------------
 
 
-def handle_chat(event: dict, user_id: str) -> dict:
-    body = _parse_body(event)
+def _nickname_for(user_id: str) -> str | None:
+    """The person's nickname, or None. A profile-store failure must not stop a chat."""
+    try:
+        profile = storage.get_profile(user_id)
+    except ClientError:
+        logger.exception("Could not read the profile for %s; continuing without it", user_id)
+        return None
+    return (profile or {}).get("nickname") or None
 
-    message = _clean_text(body.get("message"), config.MAX_MESSAGE_CHARS)
+
+def handle_chat(event: dict, user_id: str) -> dict:
+    body = parse_body(event)
+
+    message = clean_text(body.get("message"), config.MAX_MESSAGE_CHARS)
     if not message:
-        return _error(400, "Message required")
+        return error(400, "Message required")
 
     conversation_id = body.get("conversation_id")
     if not isinstance(conversation_id, str) or not conversation_id:
@@ -101,23 +79,28 @@ def handle_chat(event: dict, user_id: str) -> dict:
         logger.warning(
             "Conversation %s is not owned by the caller; refusing", conversation_id
         )
-        return _error(404, "Conversation not found")
+        return error(404, "Conversation not found")
 
     try:
         usage = storage.consume_quota(user_id)
     except storage.QuotaExceeded as exc:
-        return _error(429, str(exc))
+        return error(429, str(exc))
 
     messages = [
         {"role": item["role"], "content": [{"text": item["content"]}]} for item in history
     ]
     messages.append({"role": "user", "content": [{"text": message}]})
 
+    system = [{"text": SYSTEM_PROMPT}]
+    nickname = _nickname_for(user_id)
+    if nickname:
+        system.append({"text": NICKNAME_PROMPT.format(nickname=nickname)})
+
     try:
         response = _bedrock.converse(
             modelId=config.MODEL_ID,
             messages=messages,
-            system=[{"text": SYSTEM_PROMPT}],
+            system=system,
             inferenceConfig={
                 "maxTokens": config.MAX_OUTPUT_TOKENS,
                 "temperature": config.TEMPERATURE,
@@ -127,7 +110,7 @@ def handle_chat(event: dict, user_id: str) -> dict:
         # Do not bill the caller for our failure.
         storage.release_quota(user_id)
         logger.exception("Bedrock converse failed")
-        return _error(502, "The assistant is unavailable right now")
+        return error(502, "The assistant is unavailable right now")
 
     reply = next(
         (
@@ -140,14 +123,14 @@ def handle_chat(event: dict, user_id: str) -> dict:
     if not reply:
         storage.release_quota(user_id)
         logger.error("Bedrock returned no text content")
-        return _error(502, "The assistant is unavailable right now")
+        return error(502, "The assistant is unavailable right now")
 
     asked_at = storage.save_chat_message(conversation_id, user_id, "user", message)
     timestamp = storage.save_chat_message(
         conversation_id, user_id, "assistant", reply, after=asked_at
     )
 
-    return _respond(
+    return respond(
         200,
         {
             "response": reply,
@@ -159,15 +142,15 @@ def handle_chat(event: dict, user_id: str) -> dict:
 
 
 def handle_journal_save(event: dict, user_id: str) -> dict:
-    body = _parse_body(event)
+    body = parse_body(event)
 
-    content = _clean_text(body.get("content"), config.MAX_JOURNAL_CHARS)
+    content = clean_text(body.get("content"), config.MAX_JOURNAL_CHARS)
     if not content:
-        return _error(400, "Content required")
+        return error(400, "Content required")
 
     tags = body.get("tags")
     if isinstance(tags, list):
-        tags = [_clean_text(tag, 50) for tag in tags[: config.MAX_JOURNAL_TAGS]]
+        tags = [clean_text(tag, 50) for tag in tags[: config.MAX_JOURNAL_TAGS]]
         tags = [tag for tag in tags if tag]
     else:
         tags = []
@@ -175,11 +158,11 @@ def handle_journal_save(event: dict, user_id: str) -> dict:
     result = storage.save_journal_entry(
         user_id,
         content,
-        title=_clean_text(body.get("title"), config.MAX_JOURNAL_TITLE_CHARS) or None,
-        mood=_clean_text(body.get("mood"), 50) or None,
+        title=clean_text(body.get("title"), config.MAX_JOURNAL_TITLE_CHARS) or None,
+        mood=clean_text(body.get("mood"), 50) or None,
         tags=tags,
     )
-    return _respond(200, result)
+    return respond(200, result)
 
 
 def handle_journal_list(event: dict, user_id: str) -> dict:
@@ -191,15 +174,29 @@ def handle_journal_list(event: dict, user_id: str) -> dict:
 
     # Note there is no user_id parameter. The baseline read one from the query
     # string, so GET /journal?user_id=X returned anyone's entries.
-    return _respond(200, {"entries": storage.get_journal_entries(user_id, limit)})
+    return respond(200, {"entries": storage.get_journal_entries(user_id, limit)})
 
 
 # --- Entry point -----------------------------------------------------------
 
-_AUTHENTICATED_ROUTES = {
+# The Experiments: refused from places whose law restricts AI-delivered
+# mental health services (geo.py).
+_EXPERIMENT_ROUTES = {
     ("POST", "/chat"): handle_chat,
     ("POST", "/journal"): handle_journal_save,
     ("GET", "/journal"): handle_journal_list,
+}
+
+# The Account page. Not geo-restricted: a person in a blocked state must
+# still be able to get a copy of their data and delete their account. The
+# origin check still applies, since it is about where the request came
+# from, not where the person is.
+_ACCOUNT_ROUTES = {
+    ("GET", "/profile"): account.handle_profile_get,
+    ("POST", "/profile"): account.handle_profile_save,
+    ("GET", "/account/export"): account.handle_export,
+    ("POST", "/account/delete-data"): account.handle_delete_data,
+    ("POST", "/account/delete"): account.handle_delete_account,
 }
 
 
@@ -217,11 +214,11 @@ def lambda_handler(event, context):
     path = path.rstrip("/") or "/"
 
     if method == "OPTIONS":
-        return {"statusCode": 204, "headers": _headers(), "body": ""}
+        return {"statusCode": 204, "headers": headers(), "body": ""}
 
-    handler = _AUTHENTICATED_ROUTES.get((method, path))
+    handler = _EXPERIMENT_ROUTES.get((method, path)) or _ACCOUNT_ROUTES.get((method, path))
     if handler is None:
-        return _error(404, "Not found")
+        return error(404, "Not found")
 
     try:
         user_id = auth.user_id_from_event(event)
@@ -229,29 +226,30 @@ def lambda_handler(event, context):
         # Reached only if the authorizer is misconfigured: API Gateway
         # rejects an invalid or absent token before we are invoked.
         logger.error("Request passed the authorizer with no usable subject claim")
-        return _error(401, "Authentication required")
+        return error(401, "Authentication required")
 
-    # Every authenticated route is an Experiment (chat, journal), and none of
-    # them may be used from a place that prohibits AI-delivered mental health
-    # services. Checked after authentication so an anonymous probe learns
-    # nothing about the list, and before any quota is spent.
+    # Checked after authentication so an anonymous probe learns nothing about
+    # the list, and before any quota is spent.
     try:
-        geo.enforce(event)
+        if (method, path) in _EXPERIMENT_ROUTES:
+            geo.enforce(event)
+        else:
+            geo.locate(event)
     except geo.UntrustedOrigin:
         logger.warning("Refused %s %s: request did not come through CloudFront", method, path)
-        return _error(403, "Requests must come through saheeh.ai")
+        return error(403, "Requests must come through saheeh.ai")
     except geo.RegionBlocked as exc:
         # 451 Unavailable For Legal Reasons. User id and region are both
         # logged so a complaint can be checked against what we saw.
         logger.info("Refused %s %s for %s: region %s is blocked", method, path, user_id, exc.region)
-        return _respond(451, {"error": str(exc), "code": "region_blocked", "region": exc.region})
+        return respond(451, {"error": str(exc), "code": "region_blocked", "region": exc.region})
 
     try:
         return handler(event, user_id)
     except ClientError:
         logger.exception("AWS call failed for %s %s", method, path)
-        return _error(502, "Upstream service error")
+        return error(502, "Upstream service error")
     except Exception:
         # Log the detail, return none of it.
         logger.exception("Unhandled error for %s %s", method, path)
-        return _error(500, "Internal error")
+        return error(500, "Internal error")
