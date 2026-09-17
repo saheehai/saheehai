@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Camera, Download, Trash2, UserX } from 'lucide-react';
+import { BookLock, Camera, Download, Sparkles, Trash2, UserX } from 'lucide-react';
 import SiteNav from './SiteNav';
 import SiteFooter from './SiteFooter';
 import Alert from './Alert';
@@ -18,8 +18,8 @@ import { STORAGE_KEYS } from '../utils/constants';
 /**
  * The Account page: who you are here, how you sign in, and what we hold.
  *
- * Four sections. Profile (picture and nickname) and the two data actions
- * talk to our API. Email and password go straight from the browser to
+ * Five sections. Profile (picture and nickname), the companion's access and
+ * the two data actions talk to our API. Email and password go straight from the browser to
  * Cognito, like signing in does, so a password never touches our servers.
  * Deleting the account is two steps in order: our API removes the rows,
  * then the browser deletes the Cognito user with the person's own session.
@@ -98,7 +98,12 @@ function ProfileSection() {
       setError(null);
       setNotice(null);
       try {
-        const saved = await awsService.saveProfile({ nickname: nickname.trim(), avatar });
+        const saved = await awsService.saveProfile({
+          nickname: nickname.trim(),
+          avatar,
+          shareNickname: profile?.share_nickname !== false,
+          shareJournal: profile?.share_journal === true,
+        });
         setProfile(saved);
         setNotice('Saved.');
       } catch (err) {
@@ -107,7 +112,7 @@ function ProfileSection() {
         setBusy(false);
       }
     },
-    [busy, nickname, avatar, setProfile]
+    [busy, nickname, avatar, profile, setProfile]
   );
 
   return (
@@ -167,6 +172,111 @@ function ProfileSection() {
           {busy ? 'Saving…' : 'Save profile'}
         </button>
       </form>
+    </Section>
+  );
+}
+
+// --- What the companion can see --------------------------------------------
+
+function Toggle({ id, icon, title, description, checked, onChange, disabled }) {
+  return (
+    <div className="sharing-row">
+      <span className="sharing-row__icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div className="sharing-row__body">
+        <label className="sharing-row__title" htmlFor={id}>
+          {title}
+        </label>
+        <p className="sharing-row__note">{description}</p>
+      </div>
+      <input
+        id={id}
+        type="checkbox"
+        className="sharing-row__switch"
+        role="switch"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+/**
+ * Two switches that decide what reaches the companion.
+ *
+ * They save the moment they are flipped: a privacy choice that waits behind
+ * a Save button is a choice someone thinks they have made and has not. The
+ * journal one starts off and stays off until it is turned on here.
+ */
+function SharingSection() {
+  const { profile, setProfile } = useProfile();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+
+  const shareNickname = profile?.share_nickname !== false;
+  const shareJournal = profile?.share_journal === true;
+
+  const update = useCallback(
+    async (change) => {
+      if (busy) return;
+      setBusy(true);
+      setError(null);
+      setNotice(null);
+      try {
+        const saved = await awsService.saveProfile({
+          nickname: profile?.nickname || '',
+          avatar: profile?.avatar || '',
+          shareNickname,
+          shareJournal,
+          ...change,
+        });
+        setProfile(saved);
+        setNotice('Saved.');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy, profile, shareNickname, shareJournal, setProfile]
+  );
+
+  return (
+    <Section
+      id="sharing"
+      title="What the companion can see"
+      lead="The chat only knows what you allow here. Turning something off takes effect on your next message."
+    >
+      {error && <Alert kind="error">{error}</Alert>}
+      {notice && !error && <Alert kind="success">{notice}</Alert>}
+
+      <Toggle
+        id="share-nickname"
+        icon={<Sparkles size={18} />}
+        title="Use my nickname"
+        description="The chat can greet you by the name you set above. With this off it does not know your name at all."
+        checked={shareNickname}
+        onChange={(value) => update({ shareNickname: value })}
+        disabled={busy}
+      />
+
+      <Toggle
+        id="share-journal"
+        icon={<BookLock size={18} />}
+        title="Read my recent journal entries"
+        description="Your five most recent entries are sent with each message, so the chat can pick up where your writing left off. They leave our servers to reach the AI model, the same way your messages already do. Off unless you turn it on, and your journal stays private to you either way."
+        checked={shareJournal}
+        onChange={(value) => update({ shareJournal: value })}
+        disabled={busy}
+      />
+
+      <p className="sharing-note">
+        Nothing here trains a model. See the <Link to="/legal#privacy">Privacy Policy</Link> for
+        what happens to a message once you send it.
+      </p>
     </Section>
   );
 }
@@ -611,6 +721,8 @@ function AccountPage({ onSignOut }) {
         {loadError && <Alert kind="error">{loadError}</Alert>}
 
         <ProfileSection />
+
+        <SharingSection />
 
         <Section id="signin" title="Sign-in details" lead="Your email and password go straight to the sign-in service. We never see the password.">
           {account ? (

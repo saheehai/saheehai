@@ -212,31 +212,61 @@ def get_journal_entries(user_id: str, limit: int = 20) -> list[dict]:
 # --- Profile ---------------------------------------------------------------
 
 
+# What the companion may see, when the person has said nothing either way.
+# Sharing the nickname is the whole reason most people set one, so it starts
+# on. The journal starts off and only ever moves on a deliberate choice.
+SHARE_DEFAULTS = {"share_nickname": True, "share_journal": False}
+
+
 def get_profile(user_id: str) -> dict | None:
-    """Nickname and picture for one identity, or None when nothing is set."""
+    """Nickname, picture and sharing choices, or None when nothing is set."""
     item = _profile_table.get_item(Key={"user_id": user_id}).get("Item")
     if not item:
         return None
-    return {
+    profile = {
         "nickname": item.get("nickname"),
         "avatar": item.get("avatar"),
         "updated_at": item.get("updated_at"),
     }
+    # A row written before these existed has neither attribute, so an old
+    # profile keeps the behaviour it had: nickname shared, journal not.
+    for key, default in SHARE_DEFAULTS.items():
+        value = item.get(key)
+        profile[key] = default if value is None else bool(value)
+    return profile
 
 
-def save_profile(user_id: str, nickname: str | None, avatar: str | None) -> dict:
-    """Store what is set; an empty profile is removed rather than kept as a blank row."""
-    if not nickname and not avatar:
+def save_profile(
+    user_id: str,
+    nickname: str | None,
+    avatar: str | None,
+    *,
+    share_nickname: bool = True,
+    share_journal: bool = False,
+) -> dict:
+    """Store what is set; an empty profile is removed rather than kept as a blank row.
+
+    "Empty" means no nickname and no picture *and* nothing shared with the
+    companion. Someone who clears their name but leaves the journal switched
+    on still has a choice worth keeping, so that row stays.
+    """
+    shares = {"share_nickname": bool(share_nickname), "share_journal": bool(share_journal)}
+    if not nickname and not avatar and shares == SHARE_DEFAULTS:
         delete_profile(user_id)
-        return {"nickname": None, "avatar": None, "updated_at": None}
+        return {"nickname": None, "avatar": None, "updated_at": None, **SHARE_DEFAULTS}
 
-    item = {"user_id": user_id, "updated_at": datetime.now(UTC).isoformat()}
+    item = {"user_id": user_id, "updated_at": datetime.now(UTC).isoformat(), **shares}
     if nickname:
         item["nickname"] = nickname
     if avatar:
         item["avatar"] = avatar
     _profile_table.put_item(Item=item)
-    return {"nickname": nickname, "avatar": avatar, "updated_at": item["updated_at"]}
+    return {
+        "nickname": nickname,
+        "avatar": avatar,
+        "updated_at": item["updated_at"],
+        **shares,
+    }
 
 
 def delete_profile(user_id: str) -> int:

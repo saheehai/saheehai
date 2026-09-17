@@ -327,6 +327,10 @@ def _profile_view(row: dict | None) -> dict | None:
         "nickname": row.get("nickname"),
         "picture": row.get("avatar"),
         "updated_at": row.get("updated_at"),
+        # Absent on a row written before the switches existed, which is what
+        # the site read as "nickname shared, journal not".
+        "share_nickname": row.get("share_nickname", True),
+        "share_journal": row.get("share_journal", False),
     }
 
 

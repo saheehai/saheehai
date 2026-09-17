@@ -112,3 +112,12 @@ ACCOUNT_ACTION_QUOTA = int(os.environ.get("ACCOUNT_ACTION_QUOTA", 5))
 # Lambda cannot return more than 6 MB. Above this the export is handed off to
 # the operator workflow instead of failing opaquely.
 MAX_EXPORT_BYTES = int(os.environ.get("MAX_EXPORT_BYTES", 5 * 1024 * 1024))
+
+# --- What the companion is allowed to see ------------------------------------
+
+# Both are off unless the person turns them on from the Account page, and both
+# are stored on the profile row. The journal one is the reason these exist:
+# journal text is the most private thing the site holds, so it reaches the
+# model only on an explicit, reversible choice, and only a little of it.
+JOURNAL_CONTEXT_ENTRIES = int(os.environ.get("JOURNAL_CONTEXT_ENTRIES", 5))
+JOURNAL_CONTEXT_CHARS = int(os.environ.get("JOURNAL_CONTEXT_CHARS", 800))

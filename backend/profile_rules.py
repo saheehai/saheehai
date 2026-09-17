@@ -92,3 +92,25 @@ def validate_avatar(value) -> str | None:
     if mime == "image/webp" and raw[8:12] != b"WEBP":
         raise ProfileError("Picture does not match its type")
     return value
+
+
+def clean_shares(body: dict) -> dict:
+    """The two "what may the companion see" switches, as real booleans.
+
+    A missing key keeps the default rather than silently switching something
+    off, so an older client that does not know about these cannot turn a
+    person's nickname sharing off by omission. Anything present must be a
+    true boolean: a string like "false" is a bug in the caller, and quietly
+    reading it as true is how a person ends up sharing a journal they never
+    agreed to share.
+    """
+    shares = {}
+    for key, default in (("share_nickname", True), ("share_journal", False)):
+        value = body.get(key)
+        if value is None:
+            shares[key] = default
+        elif isinstance(value, bool):
+            shares[key] = value
+        else:
+            raise ProfileError("Sharing choices must be true or false")
+    return shares

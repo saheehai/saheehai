@@ -21,7 +21,9 @@ Three things follow from that and shape every decision:
 - **Privacy is the point.** Accounts are real, journals are private to
   their owner, logs hold no message text, nothing trains a model, and
   anyone can download or delete their data from the Account page. Do not
-  add tracking, analytics or cookies.
+  add tracking, analytics or cookies. Anything the companion learns about
+  a person is something they switched on themselves, and every such switch
+  defaults to the quieter setting unless there is a reason it cannot.
 - **It should read as care, not as an app.** Copy sounds like a person:
   short, warm, direct, no jargon, no em dashes, no assumptions about who
   the reader is. Emojis only in light moments.
@@ -62,7 +64,11 @@ feel like paper and wood, not a dashboard.
   outlined `.page-heading__action`. Disabled uses a flat muted fill, not
   opacity. Destructive buttons use the `--danger` modifier.
 - **Chat:** user bubbles brown with white text, tail bottom-right;
-  assistant bubbles light cream, tail bottom-left. No avatars beside
+  assistant bubbles light cream with a 2 px outline, tail bottom-left. The
+  companion's replies render a deliberately small slice of Markdown (bold,
+  italic, simple lists) through `utils/messageFormat.js`, built from React
+  elements only. Never hand model output to `dangerouslySetInnerHTML`, and
+  if you widen the subset, widen the prompt's formatting rules to match. No avatars beside
   bubbles: colour, tail and alignment already say who is speaking, and a
   circle per turn would crowd a phone. The identity cue lives in the
   header.
@@ -111,6 +117,9 @@ Still open, roughly in priority order:
 
 - Never hardcode the API endpoint in `frontend/src`; CI greps for it.
 - Never log message text, journal text, nicknames or email addresses.
+- Only the profile row decides what the companion is given. A request body
+  must never be able to switch sharing on, and a missing switch keeps its
+  default rather than turning something off.
 - Identity is always the token's `sub`; never read a user id from a request.
 - Every new authenticated route gets two `Events` entries in
   `infra/backend.yaml` (bare and `/api/`) and a "comes from the token" test.

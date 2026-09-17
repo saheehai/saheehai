@@ -135,10 +135,21 @@ class AWSService {
   }
 
   /** Replace the profile. Empty strings clear a field. */
-  async saveProfile({ nickname = '', avatar = '' }) {
+  /**
+   * Replaces the whole profile, sharing choices included.
+   *
+   * The two flags are always sent explicitly. The server keeps its default
+   * for anything missing, so leaving one out would quietly reset it.
+   */
+  async saveProfile({ nickname = '', avatar = '', shareNickname = true, shareJournal = false }) {
     const data = await this._request(this.profileEndpoint, {
       method: 'POST',
-      body: JSON.stringify({ nickname, avatar }),
+      body: JSON.stringify({
+        nickname,
+        avatar,
+        share_nickname: !!shareNickname,
+        share_journal: !!shareJournal,
+      }),
     });
     return data.profile || {};
   }

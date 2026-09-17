@@ -188,9 +188,13 @@ def test_profile_get_returns_what_is_stored_for_this_subject_only(tables):
     assert body["profile"]["avatar"] == JPEG_URL
 
 
-def test_profile_get_is_empty_when_nothing_is_set(tables):
+def test_profile_get_answers_with_the_defaults_when_nothing_is_set(tables):
+    """Someone who has never opened the page still has to see the switches."""
     tables["profiles"].rows = []
-    assert call("GET", "/profile") == (200, {"profile": {}})
+    assert call("GET", "/profile") == (
+        200,
+        {"profile": {"share_nickname": True, "share_journal": False}},
+    )
 
 
 def test_profile_save_stores_a_clean_nickname_and_picture(tables):
@@ -228,8 +232,59 @@ def test_profile_save_refuses_bad_input_and_changes_nothing(tables, body):
 def test_profile_save_with_nothing_removes_the_row(tables):
     status, body = call("POST", "/profile", {"nickname": "", "avatar": ""})
     assert status == 200
-    assert body["profile"] == {"nickname": None, "avatar": None, "updated_at": None}
+    assert body["profile"] == {
+        "nickname": None,
+        "avatar": None,
+        "updated_at": None,
+        "share_nickname": True,
+        "share_journal": False,
+    }
     assert tables["profiles"].get_item({"user_id": USER}) == {}
+
+
+def test_a_journal_choice_survives_clearing_the_name_and_picture(tables):
+    """The row is only junk if the sharing choices are the defaults too."""
+    status, body = call(
+        "POST", "/profile", {"nickname": "", "avatar": "", "share_journal": True}
+    )
+    assert status == 200
+    assert body["profile"]["share_journal"] is True
+    assert tables["profiles"].get_item({"user_id": USER})["Item"]["share_journal"] is True
+
+
+# --- Sharing choices -------------------------------------------------------
+
+
+def test_sharing_choices_round_trip(tables):
+    call("POST", "/profile", {"nickname": "Sam", "share_nickname": False, "share_journal": True})
+    _, body = call("GET", "/profile")
+    assert body["profile"]["share_nickname"] is False
+    assert body["profile"]["share_journal"] is True
+
+
+def test_a_profile_written_before_the_switches_existed_keeps_its_behaviour(tables):
+    """An old row has neither attribute: nickname shared, journal not."""
+    tables["profiles"].rows = [{"user_id": USER, "nickname": "Sam"}]
+    _, body = call("GET", "/profile")
+    assert body["profile"]["share_nickname"] is True
+    assert body["profile"]["share_journal"] is False
+
+
+def test_a_missing_switch_keeps_its_default_rather_than_switching_off(tables):
+    """An older client must not be able to turn sharing off by omission."""
+    status, body = call("POST", "/profile", {"nickname": "Sam"})
+    assert status == 200
+    assert body["profile"]["share_nickname"] is True
+    assert body["profile"]["share_journal"] is False
+
+
+@pytest.mark.parametrize("value", ["true", "false", 1, 0, "yes", {}])
+def test_a_switch_that_is_not_a_boolean_is_refused(tables, value):
+    """"false" is truthy in Python: reading it loosely shares a journal."""
+    status, body = call("POST", "/profile", {"share_journal": value})
+    assert status == 400
+    assert "true or false" in body["error"]
+    assert "share_journal" not in tables["profiles"].get_item({"user_id": USER})["Item"]
 
 
 # --- Export ----------------------------------------------------------------
@@ -241,7 +296,13 @@ def test_export_holds_this_persons_data_and_nobody_elses(tables):
     assert doc["account"]["sub"] == USER
     assert doc["account"]["email"] == EMAIL
     assert doc["request"]["reference"] == "self-service"
-    assert doc["profile"] == {"nickname": "Sam", "picture": JPEG_URL, "updated_at": "t"}
+    assert doc["profile"] == {
+        "nickname": "Sam",
+        "picture": JPEG_URL,
+        "updated_at": "t",
+        "share_nickname": True,
+        "share_journal": False,
+    }
     assert doc["chat"]["conversation_count"] == 2
     assert doc["chat"]["message_count"] == 3
     assert [e["entry_id"] for e in doc["journal"]["entries"]] == ["j1"]
