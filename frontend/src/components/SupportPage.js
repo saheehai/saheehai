@@ -24,7 +24,7 @@ const VOLUNTEER = [
   {
     Icon: Languages,
     title: 'Translators',
-    body: 'Spanish first. The people most likely to be priced out of care are least likely to be served in their own language.',
+    body: 'Help us put the guides in more languages. Tell us which ones you speak. Everything here should be readable by the people who need it most.',
   },
   {
     Icon: Code2,

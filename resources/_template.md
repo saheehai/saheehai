@@ -4,7 +4,9 @@ track: paying-for-care
 status: draft
 updated: 2026-01-31
 reviewed_by:
+order: 10
 summary: One or two sentences shown in the list. Optional; the first paragraph is used if left out.
+# order is optional. Lower numbers list first within a track; leave it out to sort by date.
 ---
 
 Open with the direct answer in two or three sentences. Someone skimming on a

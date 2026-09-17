@@ -165,10 +165,18 @@ require a pull request, and disallow direct pushes.
 
 ```bash
 cd frontend
-REACT_APP_API_ENDPOINT=<endpoint> npm run build
-aws s3 sync build/ s3://saheeh.ai --delete
-aws cloudfront create-invalidation --distribution-id <id> --paths "/*"
+REACT_APP_API_ENDPOINT=<endpoint> \
+REACT_APP_TURNSTILE_SITE_KEY=<key> \
+REACT_APP_COGNITO_USER_POOL_ID=<pool> \
+REACT_APP_COGNITO_CLIENT_ID=<client> \
+CLOUDFRONT_DISTRIBUTION_ID=<id> npm run deploy
 ```
+
+`npm run deploy` builds and then runs `scripts/deploy.js`, which uploads in
+the same order and with the same cache headers as the workflow: hashed
+assets first, then the JSON and sitemap, then the extensionless per-route
+HTML, then `index.html`. A plain `aws s3 sync` would upload the per-route
+HTML with the wrong content type and no cache headers.
 
 Use this only when Actions is unavailable. A manual deploy makes the live site
 diverge from `main`, so follow it with a real commit.

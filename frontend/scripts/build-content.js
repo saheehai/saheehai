@@ -8,7 +8,7 @@
  * Output (all generated, all gitignored):
  *   public/news/index.json        newest-first {slug, title, date, summary}
  *   public/news/<slug>.json       one post: the same fields plus `body`
- *   public/resources/index.json   {slug, title, track, status, updated, reviewed_by, summary}
+ *   public/resources/index.json   {slug, title, track, status, updated, reviewed_by, order, summary}
  *   public/resources/<slug>.json  one guide: the same fields plus `body`
  *   public/sitemap.xml            every public route, for search engines
  *
@@ -30,7 +30,7 @@ const SITE_URL = 'https://saheeh.ai';
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const SUMMARY_MAX = 180;
-const TRACKS = ['paying-for-care', 'mental-health-basics'];
+const TRACKS = ['paying-for-care', 'mental-health-basics', 'foundations'];
 const STATUSES = ['draft', 'published'];
 
 function fail(folder, file, why) {
@@ -45,7 +45,7 @@ function parseFrontMatter(raw, folder, file) {
   }
   const meta = {};
   for (const line of match[1].split(/\r?\n/)) {
-    if (!line.trim()) continue;
+    if (!line.trim() || line.trimStart().startsWith('#')) continue;
     const idx = line.indexOf(':');
     if (idx === -1) fail(folder, file, `front-matter line is not "key: value": ${line}`);
     meta[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
@@ -130,6 +130,9 @@ function buildResources() {
       fail('resources', file, `status must be one of: ${STATUSES.join(', ')}`);
     }
     checkDate('resources', file, 'updated', meta.updated);
+    if (meta.order !== undefined && !Number.isFinite(Number(meta.order))) {
+      fail('resources', file, `order must be a number, got: ${meta.order}`);
+    }
     return {
       slug,
       title: meta.title,
@@ -137,14 +140,19 @@ function buildResources() {
       status,
       updated: meta.updated,
       reviewed_by: meta.reviewed_by || '',
+      order: meta.order === undefined ? undefined : Number(meta.order),
       summary: meta.summary || firstParagraph(body),
       body,
     };
   });
-  // Published before drafts, then most recently updated first.
+  // Published before drafts, then by an explicit `order` when the front
+  // matter gives one (so a track can open with its foundational guide), then
+  // most recently updated first.
+  const rank = (a) => (Number.isFinite(a.order) ? a.order : Number.MAX_SAFE_INTEGER);
   articles.sort(
     (a, b) =>
       (a.status === 'draft') - (b.status === 'draft') ||
+      rank(a) - rank(b) ||
       b.updated.localeCompare(a.updated) ||
       a.slug.localeCompare(b.slug)
   );
