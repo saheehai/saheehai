@@ -17,6 +17,15 @@ USER = "cognito-sub-abc123"
 OTHER_USER = "cognito-sub-victim"
 
 
+@pytest.fixture(autouse=True)
+def no_profile(monkeypatch):
+    """No profile store in tests: a chat must never reach DynamoDB from here.
+
+    The nickname tests at the bottom set their own get_profile on top.
+    """
+    monkeypatch.setattr(storage, "get_profile", lambda uid: None)
+
+
 def event(method, path, body=None, sub=USER, query=None):
     """An API Gateway v2 event with (or without) validated JWT claims."""
     request_context = {

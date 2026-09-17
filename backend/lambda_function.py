@@ -16,7 +16,7 @@ import os
 import uuid
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 import account
 import auth
@@ -52,7 +52,7 @@ def _nickname_for(user_id: str) -> str | None:
     """The person's nickname, or None. A profile-store failure must not stop a chat."""
     try:
         profile = storage.get_profile(user_id)
-    except ClientError:
+    except (ClientError, BotoCoreError):
         logger.exception("Could not read the profile for %s; continuing without it", user_id)
         return None
     return (profile or {}).get("nickname") or None
