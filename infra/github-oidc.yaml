@@ -180,6 +180,23 @@ Resources:
                   # role is reachable only from main via OIDC.
                   - cognito-idp:*
                 Resource: '*'
+              - Sid: ManageApiEdgePolicies
+                # The backend template owns the CloudFront cache and
+                # origin-request policies for the /api/* behavior. These are
+                # account-level resources, not part of the distribution.
+                Effect: Allow
+                Action:
+                  - cloudfront:CreateCachePolicy
+                  - cloudfront:GetCachePolicy
+                  - cloudfront:UpdateCachePolicy
+                  - cloudfront:DeleteCachePolicy
+                  - cloudfront:CreateOriginRequestPolicy
+                  - cloudfront:GetOriginRequestPolicy
+                  - cloudfront:UpdateOriginRequestPolicy
+                  - cloudfront:DeleteOriginRequestPolicy
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:cache-policy/*'
+                  - !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:origin-request-policy/*'
               - Sid: ManageBackendRoles
                 Effect: Allow
                 Action:
