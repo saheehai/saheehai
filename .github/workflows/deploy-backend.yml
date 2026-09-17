@@ -57,7 +57,23 @@ jobs:
         run: sam build --template infra/backend.yaml
 
       - name: SAM deploy
+        env:
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+          ORIGIN_VERIFY_SECRET: ${{ secrets.ORIGIN_VERIFY_SECRET }}
+          NEWSLETTER_FROM: ${{ vars.NEWSLETTER_FROM }}
+        # `sam deploy` rejects an override with an empty value ("Key=" is "not
+        # a valid format"), which is what broke every deploy after the
+        # newsletter parameters arrived. Optional parameters are only passed
+        # when set; the template's defaults for them are empty anyway.
         run: |
+          overrides=(
+            "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}"
+            "TurnstileSecret=$TURNSTILE_SECRET"
+            "GeoBlockUnknown=${{ vars.GEO_BLOCK_UNKNOWN || 'false' }}"
+            "SiteUrl=${{ vars.SITE_URL || 'https://saheeh.ai' }}"
+          )
+          [ -n "$ORIGIN_VERIFY_SECRET" ] && overrides+=("OriginVerifySecret=$ORIGIN_VERIFY_SECRET")
+          [ -n "$NEWSLETTER_FROM" ] && overrides+=("NewsletterFromAddress=$NEWSLETTER_FROM")
           sam deploy \
             --stack-name "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
             --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
@@ -65,13 +81,7 @@ jobs:
             --no-fail-on-empty-changeset \
             --s3-bucket "${{ vars.SAM_ARTIFACT_BUCKET || 'saheehai-sam-artifacts-979130301726' }}" \
             --s3-prefix "${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}" \
-            --parameter-overrides \
-              "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
-              "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
-              "OriginVerifySecret=${{ secrets.ORIGIN_VERIFY_SECRET }}" \
-              "GeoBlockUnknown=${{ vars.GEO_BLOCK_UNKNOWN || 'false' }}" \
-              "NewsletterFromAddress=${{ vars.NEWSLETTER_FROM || '' }}" \
-              "SiteUrl=${{ vars.SITE_URL || 'https://saheeh.ai' }}"
+            --parameter-overrides "${overrides[@]}"
 
       - name: Report endpoint
         run: |
