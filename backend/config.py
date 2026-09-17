@@ -55,6 +55,18 @@ CHAT_TABLE = os.environ.get("CHAT_TABLE", "saheeh_chat_history")
 JOURNAL_TABLE = os.environ.get("JOURNAL_TABLE", "saheeh_journal")
 QUOTA_TABLE = os.environ.get("QUOTA_TABLE", "saheeh_quota")
 
+# --- Newsletter ------------------------------------------------------------
+
+SUBSCRIBER_TABLE = os.environ.get("SUBSCRIBER_TABLE", "saheeh_subscribers")
+
+# Verified SES identity the confirmation email is sent from, e.g.
+# "Saheeh AI <news@saheeh.ai>". Empty means sign-ups are refused with a
+# clear message rather than accepted and never confirmed.
+NEWSLETTER_FROM = os.environ.get("NEWSLETTER_FROM", "")
+
+# Where the links in those emails point.
+SITE_URL = os.environ.get("SITE_URL", "https://saheeh.ai").rstrip("/")
+
 # --- Model -----------------------------------------------------------------
 
 MODEL_ID = os.environ.get("MODEL_ID", "openai.gpt-oss-120b-1:0")

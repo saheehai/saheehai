@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import SiteNav from "./components/SiteNav";
+import SiteFooter from "./components/SiteFooter";
 import awsService from "./services/awsService";
 import { formatDate, formatMonthYear, getDateString } from "./utils/dateUtils";
 import Alert from "./components/Alert";
 import EntryCard from "./components/EntryCard";
 import { COLORS, COMMON_STYLES } from "./utils/constants";
+import Sprout from './components/Sprout';
 
 function JournalArchivePage({ onSignOut }) {
   const navigate = useNavigate();
@@ -97,9 +99,7 @@ function JournalArchivePage({ onSignOut }) {
           </button>
         </div>
         {loading ? (
-          <div style={{ textAlign: 'center', color: COLORS.darkBrown, fontSize: '18px' }}>
-            Loading your journals...
-          </div>
+          <Sprout label="Loading your journals" />
         ) : error ? (
           <Alert kind="error" style={{ textAlign: 'center', padding: '16px' }}>{error}</Alert>
         ) : (
@@ -163,6 +163,8 @@ function JournalArchivePage({ onSignOut }) {
           </div>
         )}
       </div>
+
+      <SiteFooter />
     </div>
   );
 }

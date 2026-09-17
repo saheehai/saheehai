@@ -1,14 +1,18 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Info, LogIn, LogOut, Newspaper, NotebookPen } from 'lucide-react';
+import { BookOpen, Info, LifeBuoy, LogIn, LogOut, Newspaper } from 'lucide-react';
 import Header from './Header';
 import ExperimentsMenu from './ExperimentsMenu';
 
 /**
  * The one header every page shares: the name on the left, everything else on
  * the right. The same buttons in the same order on every page, so moving
- * between chat, journal, news and about never rearranges the top of the
- * screen. Labels drop to icons on phones.
+ * between pages never rearranges the top of the screen. Labels drop to
+ * icons on phones.
+ *
+ * "Get help" is on every state of the header. Both experiments (chat and
+ * journal) live under the Experiments menu, which keeps the beta things
+ * together and the header the same width whether or not someone is signed in.
  */
 
 function NavButton({ to, Icon, children, active, onClick }) {
@@ -48,9 +52,12 @@ function SiteNav({ signedIn, onSignOut }) {
       right={
         signedIn ? (
           <>
-            <ExperimentsMenu active={at('/chat')} />
-            <NavButton to="/journal" Icon={NotebookPen} active={at('/journal')}>
-              Journal
+            <ExperimentsMenu active={at('/chat') || at('/journal')} />
+            <NavButton to="/help" Icon={LifeBuoy} active={at('/help')}>
+              Get help
+            </NavButton>
+            <NavButton to="/resources" Icon={BookOpen} active={at('/resources')}>
+              Resources
             </NavButton>
             <NavButton to="/news" Icon={Newspaper} active={at('/news')}>
               News
@@ -64,6 +71,12 @@ function SiteNav({ signedIn, onSignOut }) {
           </>
         ) : (
           <>
+            <NavButton to="/help" Icon={LifeBuoy} active={at('/help')}>
+              Get help
+            </NavButton>
+            <NavButton to="/resources" Icon={BookOpen} active={at('/resources')}>
+              Resources
+            </NavButton>
             <NavButton to="/news" Icon={Newspaper} active={at('/news')}>
               News
             </NavButton>

@@ -2,6 +2,9 @@ import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import SiteNav from './SiteNav';
+import SiteFooter from './SiteFooter';
+import { usePageMeta } from '../hooks/usePageMeta';
+import pages from '../content/pages.json';
 import {
   LAST_UPDATED,
   ORG_NAME,
@@ -54,6 +57,7 @@ const components = {
 
 function LegalPage({ signedIn, onSignOut }) {
   const { hash } = useLocation();
+  usePageMeta({ ...pages['/legal'], path: '/legal' });
 
   // The router does not scroll to hashes on its own.
   useEffect(() => {
@@ -99,6 +103,8 @@ function LegalPage({ signedIn, onSignOut }) {
           </section>
         ))}
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

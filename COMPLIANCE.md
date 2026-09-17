@@ -10,15 +10,17 @@ codebase. What follows is the evidence they would ask for.
 
 ## The shape of the product
 
-- The **site** (`/`, `/news`, `/legal`) is static, informational, needs no
-  account, sets no cookies, and runs no analytics or tracking.
+- The **site** (`/`, `/help`, `/resources`, `/news`, `/support`, `/mission`,
+  `/team`, `/legal`) is static, informational, needs no account, sets no
+  cookies, and runs no analytics or tracking. Its one form is the newsletter
+  sign-up, which stores an email address only after the owner confirms it.
 - The **Experiments** (`/chat`, `/journal`) are beta features behind an
   account. The chat is an AI wellness companion. It is not therapy and is
   never described as therapy. It is secondary to the site, and is labelled
   "(beta)" in the menu and in the notice before first use.
 
 Everything below that concerns personal or health data is about the
-Experiments; the site collects nothing.
+Experiments; the site collects nothing beyond a confirmed newsletter address.
 
 ## What we collect and where it lives
 
@@ -28,11 +30,13 @@ Experiments; the site collects nothing.
 | Chat messages and replies | DynamoDB `saheeh_chat_history` | Life of account | Keyed by Cognito `sub`; conversation ownership enforced server-side |
 | Journal entries, mood | DynamoDB `saheeh_journal` | Life of account | Keyed by Cognito `sub` |
 | Daily quota counters | DynamoDB `saheehai-backend-quota` | ~2 days (TTL) | No content |
+| Newsletter address, token, sign-up page, timestamps | DynamoDB `saheehai-backend-subscribers` | Until unsubscribe, then 30 days (TTL) | Double opt-in via SES; no IP, no name. Turnstile on the form |
 | Function logs | CloudWatch | 30 days | Ids and errors only; no message or entry text |
 | API access logs | CloudWatch | 30 days | Who, what, when, from where, status. No bodies |
 | Browser local storage | The person's device | Until sign-out | Session tokens, current chat, draft, last-active time |
 
-Third parties: AWS (everything), Cloudflare (Turnstile at sign-up only).
+Third parties: AWS (everything, including SES for the newsletter),
+Cloudflare (Turnstile at account sign-up and on the newsletter form only).
 Amazon Bedrock does not retain or train on prompts and completions, and
 model invocation logging is **off** in this account (verified 2026-09-16),
 so no chat content is copied into logs or S3 by the model service.
@@ -147,6 +151,8 @@ No cookie banner is needed while there are no cookies.
 | "Signed out after inactivity" | `useIdleSignOut`, 30 minutes |
 | "Not used to train AI models" | Bedrock's data policy; invocation logging off |
 | "Not available in [state]" | `backend/geo.py` + CloudFront viewer headers |
+| "Nothing is sent until you click the confirmation link" | `backend/subscribe.py`: pending until `/subscribe/confirm` |
+| "Unsubscribing deletes the address within 30 days" | `expires_at` TTL set on unsubscribe; table TTL enabled |
 | "You are talking to an AI" | `DisclaimerModal`, Terms §5 |
 
 ## Review

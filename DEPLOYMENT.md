@@ -68,10 +68,14 @@ race to the same bucket or stack.
 
 ### Cache headers
 
-Hashed assets (`main.<hash>.js`) upload with `max-age=31536000,immutable`;
-`index.html` uploads with `no-cache`. Assets go up **before** `index.html`, so
-the new HTML never references an asset that has not landed yet. Reversing this
-serves users a stale app indefinitely.
+Hashed assets (`main.<hash>.js`) upload with `max-age=31536000,immutable`.
+HTML uploads with `no-cache`: `index.html` and the per-route copies that
+`frontend/scripts/prerender.js` writes under `build/__pages/` (uploaded to
+the bucket root so `/help` is served from the object `help`, with that
+route's title, description and social tags). Generated JSON under `news/`
+and `resources/`, plus `sitemap.xml` and `robots.txt`, get a short cache.
+Assets go up **before** any HTML, so the new HTML never references an asset
+that has not landed yet. Reversing this serves users a stale app indefinitely.
 
 ## One-time AWS setup
 
@@ -139,6 +143,7 @@ Under **Settings → Secrets and variables → Actions**:
 | `COGNITO_CLIENT_ID` | app client id (backend stack output) |
 | `SITE_URL` | `https://saheeh.ai` |
 | `BACKEND_STACK_NAME` | `saheehai-backend` |
+| `NEWSLETTER_FROM` | `Saheeh AI <news@saheeh.ai>` once verified in SES; leave unset until then (see "Newsletter email" below) |
 
 **Secrets:**
 
@@ -241,6 +246,35 @@ and prints their ids as outputs.
 
 To undo: clear `ORIGIN_VERIFY_SECRET`, point `API_ENDPOINT` back at the
 execute-api URL, redeploy both. The behavior can stay.
+
+## Newsletter email
+
+The sign-up forms post to `/subscribe` on the backend, which stores the
+address as pending and sends a confirmation link through Amazon SES. Nothing
+is on the list until the link is clicked, and every email carries an
+unsubscribe link. Until SES is set up the route answers 503 with "Email
+sign-ups are not open yet" and stores nothing, so the forms can ship first.
+
+One-time setup, in the console or CLI, in `us-east-1`:
+
+1. **Verify the domain** in SES (Configuration → Identities → Create
+   identity → Domain `saheeh.ai`, Easy DKIM). Add the CNAME records it gives
+   you at the DNS host. Verification takes minutes to an hour.
+2. **Leave the sandbox.** A new SES account can only send to verified
+   addresses. Request production access (Account dashboard → Request
+   production access); describe the double opt-in flow and the
+   one-click unsubscribe. Usually granted within a day.
+3. **Set `NEWSLETTER_FROM`** as a repository variable, e.g.
+   `Saheeh AI <news@saheeh.ai>`, and redeploy the backend. The function's
+   IAM policy allows `ses:SendEmail` from identities in this account only.
+4. Test: submit the form on `/support`, click the link in the email, and
+   check the row in the `saheehai-backend-subscribers` table reads
+   `confirmed`. Then open the unsubscribe link and check it reads
+   `unsubscribed` with an `expires_at` 30 days out.
+
+Sending an actual newsletter is manual for now: export confirmed addresses
+from the table and send through SES or a tool of your choice, including each
+address's `/subscribe/unsubscribe?token=…` link in the footer.
 
 ## Geographic restriction
 

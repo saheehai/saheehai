@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /signin
+Disallow: /chat
+Disallow: /journal
+Disallow: /subscribe/
+
+Sitemap: https://saheeh.ai/sitemap.xml

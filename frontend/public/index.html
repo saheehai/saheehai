@@ -3,15 +3,46 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#6B4423" />
     <title>Saheeh AI</title>
+    <!-- Per-page values are filled in by src/hooks/usePageMeta.js in the
+         browser and by scripts/prerender.js in the static HTML crawlers see. -->
+    <meta name="description" content="Saheeh AI is a Texas nonprofit making health information and support easier to reach: free resources on paying for care, a private journal, and an AI wellness companion in beta." />
+    <link rel="canonical" href="https://saheeh.ai/" />
+    <meta property="og:site_name" content="Saheeh AI" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Saheeh AI" />
+    <meta property="og:description" content="Saheeh AI is a Texas nonprofit making health information and support easier to reach: free resources on paying for care, a private journal, and an AI wellness companion in beta." />
+    <meta property="og:url" content="https://saheeh.ai/" />
+    <meta property="og:image" content="https://saheeh.ai/saheeh-favicon/web-app-manifest-512x512.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/png" href="%PUBLIC_URL%/saheeh-favicon/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/saheeh-favicon/favicon.svg" />
     <link rel="shortcut icon" href="%PUBLIC_URL%/saheeh-favicon/favicon_round_mask.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/saheeh-favicon/apple-touch-icon.png" />
     <link rel="manifest" href="%PUBLIC_URL%/saheeh-favicon/site.webmanifest" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "NGO",
+        "name": "Saheeh AI",
+        "url": "https://saheeh.ai/",
+        "logo": "https://saheeh.ai/saheeh-favicon/web-app-manifest-512x512.png",
+        "description": "A Texas nonprofit making health information and support easier to reach.",
+        "foundingDate": "2026",
+        "areaServed": "US",
+        "sameAs": ["https://github.com/saheehai/saheehai"]
+      }
+    </script>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      Saheeh AI is a Texas nonprofit making health information and support easier to reach.
+      This site needs JavaScript to run. If you are in crisis, call or text 988 (United States)
+      or text HOME to 741741.
+    </noscript>
     <div id="root"></div>
   </body>
 </html>

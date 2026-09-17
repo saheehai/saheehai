@@ -9,13 +9,16 @@
  * people are told these terms took effect.
  */
 
+import { CONTACT_HREF, CONTACT_LABEL, ORG_NAME } from './site';
+
 export const LAST_UPDATED = '2026-09-16';
 
-export const ORG_NAME = 'Saheeh AI';
+export { ORG_NAME };
 
-// Where privacy requests and legal notices go. There is no dedicated inbox
-// yet; the public issue tracker is the one channel that is always answered.
-export const CONTACT_URL = 'https://github.com/saheehai/saheehai/issues';
+// Where privacy requests and legal notices go: the inbox in content/site.js
+// when one exists, otherwise the public issue tracker, which is the one
+// channel that is always answered.
+export const CONTACT_URL = CONTACT_HREF;
 
 export const TERMS = `
 ## 1. Who we are and what these Terms cover
@@ -25,10 +28,11 @@ We have applied to the Internal Revenue Service for recognition as a
 501(c)(3) public charity.
 
 Our website at saheeh.ai (the "Site") is mostly informational: who we are,
-what we are working on, and general wellness information. Under
-"Experiments" the Site also offers beta features, currently an AI wellness
-companion (chat) and a private journal (the "Experiments"). The Site and the
-Experiments together are the "Service".
+what we are working on, crisis and support lines, and plain-language guides
+to paying for care and to mental health. Under "Experiments" the Site also
+offers beta features, currently an AI wellness companion (chat) and a
+private journal (the "Experiments"). The Site and the Experiments together
+are the "Service".
 
 These Terms of Use (the "Terms") are a binding agreement between you and us.
 By creating an account, ticking the acknowledgement before your first chat,
@@ -224,7 +228,7 @@ Privacy Policy are the entire agreement between you and us about the Service.
 
 ## 18. Contact
 
-Questions about these Terms: [${CONTACT_URL}](${CONTACT_URL}).
+Questions about these Terms: [${CONTACT_LABEL}](${CONTACT_URL}).
 `;
 
 export const PRIVACY = `
@@ -269,6 +273,12 @@ Turnstile check to stop automated account creation. Cloudflare receives
 signals such as your IP address and browser characteristics for that purpose
 only. See the [Cloudflare Turnstile Privacy Addendum](#turnstile) below.
 
+**Newsletter sign-ups.** If you ask for our email updates: your email
+address, which page you signed up from, and when. Nothing is sent until you
+click the confirmation link we email you, every message we send carries an
+unsubscribe link, and we send nothing but our own updates. Unsubscribing
+deletes the address within 30 days.
+
 **Data kept on your device.** Your browser keeps your sign-in session, a
 copy of the current chat, an unsent journal draft, a local usage counter, the
 time you were last active (for the automatic sign-out), and a flag recording
@@ -288,6 +298,7 @@ and, where the law requires it, ask for your consent.
   and show your journal.
 - To keep the Service safe and fair: enforce daily limits, detect abuse and
   protect other users.
+- To send you the email updates you asked for, and nothing else by email.
 - To improve the Service, using aggregate information that does not identify
   anyone.
 - To meet legal obligations and to protect our rights and yours.
@@ -304,7 +315,8 @@ third parties who process data on our behalf and under our instructions:
 
 - **Amazon Web Services (AWS)** hosts everything: accounts (Cognito), the
   database (DynamoDB), the application (Lambda and API Gateway), the website
-  (S3 and CloudFront) and the language model (Amazon Bedrock). Your messages
+  (S3 and CloudFront), the newsletter list and its email (DynamoDB and SES)
+  and the language model (Amazon Bedrock). Your messages
   are sent to Bedrock to generate a reply. AWS states that Bedrock does not
   store or log prompts and responses, does not use them to train any model,
   and does not share them with third parties.
@@ -323,7 +335,8 @@ Your account, chat history and journal are kept for as long as your account
 exists. Server logs are kept for 30 days. If you ask us to delete your
 account, we delete your account, chat history and journal entries within 30
 days, except for copies we must keep to meet a legal obligation or that
-remain briefly in backups.
+remain briefly in backups. A newsletter address is kept until you
+unsubscribe, and deleted within 30 days after.
 
 ## 5. Security
 
@@ -352,7 +365,7 @@ business associate agreement, information we receive from them is handled as
 that agreement and HIPAA require. We follow HIPAA's security safeguards as a
 baseline for the whole Service either way.
 
-## 8. Your choices and rights
+## 7. Your choices and rights
 
 These rights are yours wherever you live. We give them to everyone rather
 than only where a particular law requires it, so that they do not depend on
@@ -386,21 +399,21 @@ cross-context behavioral advertising, so there is nothing to opt out of.
 
 We will not treat you differently for exercising any of these rights.
 
-## 9. Children
+## 8. Children
 
 The Service is for adults. We do not knowingly collect information from
 anyone under 18, and never from a child under 13. If you believe we have,
 [tell us](${CONTACT_URL}) and we will delete it.
 
-## 10. Changes
+## 9. Changes
 
 We will update this policy as the Service changes. The "last updated" date
 at the top of the page tells you when. Significant changes will also be
 posted in our [News](/news).
 
-## 11. Contact
+## 10. Contact
 
-Privacy questions and requests: [${CONTACT_URL}](${CONTACT_URL}).
+Privacy questions and requests: [${CONTACT_LABEL}](${CONTACT_URL}).
 `;
 
 export const TURNSTILE_INTRO = `

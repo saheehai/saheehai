@@ -69,7 +69,9 @@ jobs:
               "AllowedOrigin=${{ vars.SITE_URL || 'https://saheeh.ai' }}" \
               "TurnstileSecret=${{ secrets.TURNSTILE_SECRET }}" \
               "OriginVerifySecret=${{ secrets.ORIGIN_VERIFY_SECRET }}" \
-              "GeoBlockUnknown=${{ vars.GEO_BLOCK_UNKNOWN || 'false' }}"
+              "GeoBlockUnknown=${{ vars.GEO_BLOCK_UNKNOWN || 'false' }}" \
+              "NewsletterFromAddress=${{ vars.NEWSLETTER_FROM || '' }}" \
+              "SiteUrl=${{ vars.SITE_URL || 'https://saheeh.ai' }}"
 
       - name: Report endpoint
         run: |

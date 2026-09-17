@@ -60,14 +60,43 @@ if (fs.existsSync(bundleDir)) {
 console.log(`🚀 Deploying to s3://${BUCKET}\n`);
 
 try {
-  // Hashed assets first, cached forever. index.html must land last so it
-  // never references an asset that has not been uploaded yet.
+  // Hashed assets first, cached forever. HTML must land last so it never
+  // references an asset that has not been uploaded yet. Mirrors the steps
+  // in .github/workflows/deploy-frontend.yml.
   console.log('📤 Uploading hashed assets...');
   run(
     `aws s3 sync "${buildDir}" "s3://${BUCKET}" --delete ` +
       '--cache-control "public,max-age=31536000,immutable" ' +
-      '--exclude "index.html" --exclude "*.map"'
+      '--exclude "index.html" --exclude "__pages/*" --exclude "news/*" ' +
+      '--exclude "resources/*" --exclude "sitemap.xml" --exclude "robots.txt" --exclude "*.map"'
   );
+
+  console.log('\n📤 Uploading news, resources, sitemap and robots...');
+  for (const folder of ['news', 'resources']) {
+    run(
+      `aws s3 sync "${path.join(buildDir, folder)}" "s3://${BUCKET}/${folder}/" --delete ` +
+        '--exclude "*" --include "*.json" ' +
+        '--cache-control "public,max-age=300,must-revalidate" --content-type "application/json"'
+    );
+  }
+  run(
+    `aws s3 cp "${path.join(buildDir, 'sitemap.xml')}" "s3://${BUCKET}/sitemap.xml" ` +
+      '--cache-control "public,max-age=3600" --content-type "application/xml"'
+  );
+  run(
+    `aws s3 cp "${path.join(buildDir, 'robots.txt')}" "s3://${BUCKET}/robots.txt" ` +
+      '--cache-control "public,max-age=3600" --content-type "text/plain"'
+  );
+
+  console.log('\n📤 Uploading per-route HTML...');
+  const pagesDir = path.join(buildDir, '__pages');
+  for (const name of fs.readdirSync(pagesDir)) {
+    const key = name.split('__').join('/');
+    run(
+      `aws s3 cp "${path.join(pagesDir, name)}" "s3://${BUCKET}/${key}" ` +
+        '--cache-control "no-cache,no-store,must-revalidate" --content-type "text/html"'
+    );
+  }
 
   console.log('\n📤 Uploading index.html...');
   run(
