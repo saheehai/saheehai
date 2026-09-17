@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { X } from 'lucide-react';
 import Alert from './Alert';
 import FormInput from './FormInput';
 import ChatBackdrop from './ChatBackdrop';
@@ -15,7 +16,10 @@ import { STORAGE_KEYS } from '../utils/constants';
  * hops means nobody retypes it.
  *
  * It floats over a blurred still of the chat, so the app is visibly right
- * there behind the door rather than replaced by a form.
+ * there behind the door rather than replaced by a form. Because it presents
+ * itself as a dialog, it has to behave like one: a close control and Escape
+ * both lead back to the front page, so nobody is stuck at a door they only
+ * meant to look at.
  */
 
 const MIN_PASSWORD_LENGTH = 12;
@@ -171,6 +175,15 @@ export default function AuthPage({ onAuthenticated }) {
   const needsPassword = mode !== 'confirm' && mode !== 'forgot';
   const needsCode = mode === 'confirm' || mode === 'reset';
 
+  // A dialog that cannot be dismissed with Escape is a dialog in name only.
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') navigate('/');
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [navigate]);
+
   return (
     <div className="auth-scene">
       <ChatBackdrop />
@@ -178,6 +191,10 @@ export default function AuthPage({ onAuthenticated }) {
       <div className="auth-overlay">
         <div className="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title">
           <div className="auth-card">
+            <Link to="/" className="auth-close" aria-label="Close and go back to the home page">
+              <X size={18} strokeWidth={2.25} />
+            </Link>
+
             <div className="auth-brand">
               <img src="/saheeh-favicon/favicon.svg" alt="" width="36" height="36" />
               <span>Saheeh AI</span>

@@ -405,12 +405,18 @@ textarea:focus-visible {
 .message-bubble--user {
     background-color: var(--brown);
     color: white;
+    /* Its own fill, so it needs no outline. The border is here only to keep
+       both bubbles the same height as the outlined assistant one. */
+    border: 2px solid var(--brown);
     border-radius: 16px 16px 4px 16px;
 }
 
 .message-bubble--assistant {
     background-color: var(--light-cream);
     color: var(--dark-brown);
+    /* The fill alone is about 1.16:1 against the page, so the bubble had no
+       readable edge. Cards elsewhere on the site are outlined the same way. */
+    border: 2px solid var(--brown-line);
     border-radius: 16px 16px 16px 4px;
 }
 
@@ -418,6 +424,7 @@ textarea:focus-visible {
     display: flex;
     padding: 5px 11px;
     background-color: var(--light-cream);
+    border: 2px solid var(--brown-line);
     border-radius: 16px 16px 16px 4px;
     min-width: 56px;
     min-height: 22px;
@@ -669,12 +676,33 @@ textarea:focus-visible {
 }
 
 .auth-card {
+    position: relative;
     box-sizing: border-box;
     padding: 32px 28px;
     background-color: var(--cream);
     border: 1px solid rgba(93, 78, 55, 0.18);
     border-radius: 20px;
     box-shadow: 0 24px 60px rgba(60, 40, 20, 0.28), 0 2px 8px rgba(60, 40, 20, 0.1);
+}
+
+/* The way out of the sign-in dialog. Escape does the same thing. */
+.auth-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    color: var(--medium-brown);
+    transition: background-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
+}
+
+.auth-close:hover {
+    background-color: var(--light-cream);
+    color: var(--brown);
 }
 
 .auth-brand {
@@ -1717,7 +1745,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 
 .site-footer__crisis {
     margin: 0 0 16px;
-    padding: 12px 16px;
+    padding: 14px 16px;
     border: 1px solid var(--brown-line);
     border-radius: 10px;
     font-size: 14px;
@@ -1726,11 +1754,52 @@ textarea::-webkit-scrollbar-thumb:hover {
     background-color: var(--cream);
 }
 
-.site-footer__crisis a {
+.footer-crisis__lead {
+    margin: 0 0 10px;
+}
+
+.footer-crisis__more {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--medium-brown);
+}
+
+.footer-crisis__more a {
     color: var(--brown);
     font-weight: 600;
     text-decoration: underline;
     text-underline-offset: 2px;
+}
+
+/* Two rows you press. They stand side by side when there is room and stack
+   on a phone, and either way they are at least 44 px tall. */
+.footer-crisis__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.footer-crisis__action {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1 1 200px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cream);
+    text-decoration: none;
+    background-color: var(--brown);
+    border-radius: 8px;
+    transition: background-color 0.15s var(--ease-out);
+}
+
+.footer-crisis__action:hover {
+    background-color: var(--brown-dark);
 }
 
 .site-footer__nav {
@@ -1802,34 +1871,61 @@ textarea::-webkit-scrollbar-thumb:hover {
     border-radius: 12px;
 }
 
-.help-item__head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 4px 16px;
-}
-
 .help-item__name {
+    display: block;
     font-size: 16px;
     font-weight: 600;
     color: var(--brown);
 }
 
-.help-item__how {
+/* The call, text or website row. Full width and 48 px tall so it is an easy
+   target on a phone, and outlined so it reads as something you press. */
+.help-item__action {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 10px;
+    padding: 10px 14px;
     font-size: 18px;
     font-weight: 600;
     color: var(--brown);
     text-decoration: none;
+    background-color: var(--light-cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 12px;
+    transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
 }
 
-a.help-item__how:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
+.help-item__action:hover {
+    background-color: var(--cream);
+    border-color: var(--brown);
+}
+
+.help-section--urgent .help-item__action {
+    background-color: var(--brown);
+    border-color: var(--brown);
+    color: var(--cream);
+}
+
+.help-section--urgent .help-item__action:hover {
+    background-color: var(--brown-dark);
+    border-color: var(--brown-dark);
+}
+
+/* A number with nowhere to point: still the loudest thing in the card. */
+.help-item__how {
+    display: block;
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--brown);
 }
 
 .help-item__note {
-    margin: 6px 0 0;
+    margin: 10px 0 0;
     font-size: 14px;
     line-height: 1.55;
 }
@@ -2048,11 +2144,6 @@ a.help-item__how:hover {
         grid-template-columns: 1fr;
     }
 
-    .help-item__head {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
     .team-card {
         flex-direction: column;
         align-items: center;
@@ -2061,7 +2152,10 @@ a.help-item__how:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .about-action {
+    .about-action,
+    .auth-close,
+    .help-item__action,
+    .footer-crisis__action {
         transition: none !important;
     }
 }

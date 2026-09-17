@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { ExternalLink, MessageSquare, Phone } from 'lucide-react';
 import SiteNav from './SiteNav';
 import SiteFooter from './SiteFooter';
 import { usePageMeta } from '../hooks/usePageMeta';
@@ -11,39 +12,58 @@ import pages from '../content/pages.json';
  * Numbers first, biggest, no account, no scrolling past a pitch.
  */
 
+/** A phone for a call, a speech bubble for a text, an arrow for a website. */
+function ActionIcon({ href }) {
+  if (href.startsWith('tel:')) return <Phone size={17} strokeWidth={2.25} aria-hidden="true" />;
+  if (href.startsWith('sms:')) {
+    return <MessageSquare size={17} strokeWidth={2.25} aria-hidden="true" />;
+  }
+  return <ExternalLink size={16} strokeWidth={2.25} aria-hidden="true" />;
+}
+
+function shortUrl(url) {
+  return url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+}
+
 function LineList({ items }) {
   return (
     <ul className="help-list">
-      {items.map(({ name, how, href, url, note }) => (
-        <li key={name} className="help-item">
-          <div className="help-item__head">
+      {items.map(({ name, how, href, url, note }) => {
+        // The thing you actually do is its own row: full width, at least
+        // 44 px tall, and obviously tappable. A number that reads as plain
+        // bold text is no use to someone shaking on a phone.
+        const action = href || url;
+        const external = !href && !!url;
+        return (
+          <li key={name} className="help-item">
             <span className="help-item__name">{name}</span>
             {how &&
-              (href ? (
-                <a className="help-item__how" href={href}>
-                  {how}
-                </a>
-              ) : url ? (
-                <a className="help-item__how" href={url} target="_blank" rel="noopener noreferrer">
-                  {how}
+              (action ? (
+                <a
+                  className="help-item__action"
+                  href={action}
+                  {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                >
+                  <ActionIcon href={action} />
+                  <span>{how}</span>
                 </a>
               ) : (
                 <span className="help-item__how">{how}</span>
               ))}
-          </div>
-          {note && <p className="help-item__note">{note}</p>}
-          {url && how && href && (
-            <a className="help-item__site" href={url} target="_blank" rel="noopener noreferrer">
-              {url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
-            </a>
-          )}
-          {url && !how && (
-            <a className="help-item__site" href={url} target="_blank" rel="noopener noreferrer">
-              {url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
-            </a>
-          )}
-        </li>
-      ))}
+            {note && <p className="help-item__note">{note}</p>}
+            {url && href && (
+              <a className="help-item__site" href={url} target="_blank" rel="noopener noreferrer">
+                {shortUrl(url)}
+              </a>
+            )}
+            {url && !how && (
+              <a className="help-item__site" href={url} target="_blank" rel="noopener noreferrer">
+                {shortUrl(url)}
+              </a>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
