@@ -5,15 +5,21 @@ import { ChevronDown } from 'lucide-react';
 /**
  * A dropdown in the header: one button that opens a short list of pages.
  *
- * The header uses two of these. "Experiments" holds the chat and the journal,
- * so the beta things stay together (which is how the Terms describe them)
- * and the header does not grow a button per experiment. "Resources" holds
- * the guides, the crisis lines and the news, so the header stays the same
- * width whether or not someone is signed in.
+ * The header uses three of these. "Experiments" holds the chat and the
+ * journal, so the beta things stay together (which is how the Terms
+ * describe them) and the header does not grow a button per experiment.
+ * "Resources" holds the guides, the crisis lines and the news, so the
+ * header stays the same width whether or not someone is signed in. The
+ * account menu holds the Account page and Sign out behind the person's
+ * picture, so signing out takes one deliberate tap rather than being the
+ * last of a row of small icons.
  *
- * `items` is [{ label, to, Icon, tag? }]; `tag` renders as "(beta)".
+ * `items` is [{ label, to?, onSelect?, Icon, tag?, divider? }]; `tag`
+ * renders as "(beta)", `onSelect` runs instead of navigating, `divider`
+ * draws a line above the item. `trigger` replaces the icon in the button,
+ * for the avatar; `className` is added to the trigger.
  */
-function NavMenu({ label, Icon, items, active = false }) {
+function NavMenu({ label, Icon, trigger = null, items, active = false, className = '' }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -40,28 +46,29 @@ function NavMenu({ label, Icon, items, active = false }) {
     <div className="menu" ref={rootRef}>
       <button
         type="button"
-        className={`logout-button nav-btn menu__trigger ${open ? 'is-open' : ''} ${active ? 'is-active' : ''}`}
+        className={`logout-button nav-btn menu__trigger ${open ? 'is-open' : ''} ${active ? 'is-active' : ''} ${className}`.trim()}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={label}
       >
-        <Icon size={15} aria-hidden="true" />
+        {trigger || <Icon size={15} aria-hidden="true" />}
         <span className="nav-btn__label">{label}</span>
         <ChevronDown size={14} className="menu__caret" aria-hidden="true" />
       </button>
 
       {open && (
         <div className="menu__panel" role="menu">
-          {items.map(({ label: itemLabel, tag, to, Icon: ItemIcon }) => (
+          {items.map(({ label: itemLabel, tag, to, onSelect, Icon: ItemIcon, divider }) => (
             <button
-              key={to}
+              key={to || itemLabel}
               type="button"
               role="menuitem"
-              className="menu__item"
+              className={`menu__item ${divider ? 'menu__item--divided' : ''}`.trim()}
               onClick={() => {
                 close();
-                navigate(to);
+                if (onSelect) onSelect();
+                else navigate(to);
               }}
             >
               <ItemIcon size={16} aria-hidden="true" />

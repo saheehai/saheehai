@@ -1,8 +1,9 @@
 import React from 'react';
-import { ChevronDown, FlaskConical, Info, LogOut, Newspaper, NotebookPen } from 'lucide-react';
+import { BookOpen, ChevronDown, FlaskConical, Info } from 'lucide-react';
 import Header from './Header';
 import MessageBubble from './MessageBubble';
 import ChatInputBar from './ChatInputBar';
+import Avatar from './Avatar';
 import { GREETING_MESSAGE } from '../utils/constants';
 
 /**
@@ -11,6 +12,7 @@ import { GREETING_MESSAGE } from '../utils/constants';
  * Deliberately not the real ChatPage: nothing here reads storage or talks to
  * the network, so whoever signed out last leaves no trace on this screen.
  * It is inert, so nothing in it can be focused or clicked through the blur.
+ * The header mirrors SiteNav's signed-in row; keep the two in step.
  */
 function ChatBackdrop() {
   return (
@@ -24,21 +26,19 @@ function ChatBackdrop() {
               <span className="nav-btn__label">Experiments</span>
               <ChevronDown size={14} className="menu__caret" />
             </span>
-            <span className="logout-button nav-btn">
-              <NotebookPen size={15} />
-              <span className="nav-btn__label">Journal</span>
-            </span>
-            <span className="logout-button nav-btn">
-              <Newspaper size={15} />
-              <span className="nav-btn__label">News</span>
+            <span className="logout-button nav-btn menu__trigger">
+              <BookOpen size={15} />
+              <span className="nav-btn__label">Resources</span>
+              <ChevronDown size={14} className="menu__caret" />
             </span>
             <span className="logout-button nav-btn">
               <Info size={15} />
               <span className="nav-btn__label">About Us</span>
             </span>
-            <span className="logout-button nav-btn">
-              <LogOut size={15} />
-              <span className="nav-btn__label">Sign Out</span>
+            <span className="logout-button nav-btn menu__trigger account-btn">
+              <Avatar name="" size={24} />
+              <span className="nav-btn__label">Account</span>
+              <ChevronDown size={14} className="menu__caret" />
             </span>
           </>
         }
