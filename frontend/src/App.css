@@ -154,19 +154,15 @@ textarea:focus-visible {
 /* Layout utilities */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
-.flex-1 { flex: 1; }
 .min-h-screen { min-height: 100vh; }
 .h-full { height: 100%; }
 .w-full { width: 100%; }
 .max-w-3xl { max-width: 48rem; }
 .mx-auto { margin-left: auto; margin-right: auto; }
 .mb-3 { margin-bottom: 0.75rem; }
-.justify-between { justify-content: space-between; }
 .justify-end { justify-content: flex-end; }
 .justify-start { justify-content: flex-start; }
-.items-center { align-items: center; }
 .gap-1 { gap: 0.25rem; }
-.gap-2 { gap: 0.5rem; }
 .break-words { overflow-wrap: break-word; }
 
 /* Header */
@@ -251,11 +247,7 @@ textarea:focus-visible {
     background-color: rgba(255, 248, 231, 0.14);
 }
 
-.back-button {
-    padding-left: 8px;
-}
-
-/* Experiments dropdown */
+/* Header dropdowns (Experiments, Resources) */
 .menu {
     position: relative;
 }
@@ -1051,43 +1043,6 @@ textarea:focus-visible {
     line-height: 1.8;
 }
 
-.about-details {
-    margin-bottom: 40px;
-    padding: 4px 0;
-    border-top: 1px solid var(--brown-line);
-    border-bottom: 1px solid var(--brown-line);
-}
-
-.about-details summary {
-    padding: 14px 4px;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--brown);
-    cursor: pointer;
-    border-radius: 6px;
-}
-
-.about-details__body {
-    padding: 4px 4px 20px;
-}
-
-.about-details__body h3 {
-    margin: 20px 0 6px;
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--brown);
-}
-
-.about-details__body p {
-    margin: 0;
-}
-
-.about-details__closing {
-    margin-top: 20px !important;
-    font-style: italic;
-    opacity: 0.8;
-}
-
 .about-cta {
     display: flex;
     flex-direction: column;
@@ -1538,20 +1493,6 @@ textarea::-webkit-scrollbar-thumb:hover {
 .legal-links--modal a:hover {
     color: var(--cream);
     opacity: 1;
-}
-
-.about-footer {
-    padding-top: 24px;
-    border-top: 1px solid var(--brown-line);
-}
-
-.about-footer__org {
-    margin: 10px 0 0;
-    font-size: 12px !important;
-    line-height: 1.5;
-    text-align: center;
-    color: var(--medium-brown);
-    opacity: 0.85;
 }
 
 .modal-beta {
