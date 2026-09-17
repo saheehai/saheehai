@@ -6,9 +6,8 @@ import { usePageMeta } from '../hooks/usePageMeta';
 import pages from '../content/pages.json';
 
 /**
- * The full mission statement, on its own page rather than folded into a
- * <details> on the front page. The wording is the front page's softened
- * version of public/mission.md.
+ * The full mission statement, on its own page. The wording is a softened
+ * version of MISSION.md at the repo root, which is the original text.
  */
 function MissionPage({ signedIn, onSignOut }) {
   usePageMeta({ ...pages['/mission'], path: '/mission' });

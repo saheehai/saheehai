@@ -1,23 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, FlaskConical, MessageCircle, NotebookPen } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 
 /**
- * "Experiments" dropdown in the header.
+ * A dropdown in the header: one button that opens a short list of pages.
  *
- * The chat and the journal are the experiments; they are reached from here
- * rather than from top-level buttons so new experiments can join the list
- * without the header growing a button each time, and so the beta things
- * stay together, which is how the Terms describe them.
+ * The header uses two of these. "Experiments" holds the chat and the journal,
+ * so the beta things stay together (which is how the Terms describe them)
+ * and the header does not grow a button per experiment. "Resources" holds
+ * the guides, the crisis lines and the news, so the header stays the same
+ * width whether or not someone is signed in.
+ *
+ * `items` is [{ label, to, Icon, tag? }]; `tag` renders as "(beta)".
  */
-// Everything in here is beta, and says so: the companion is a secondary
-// feature, not the product, and nobody should mistake it for care.
-const ITEMS = [
-  { label: 'Chat', tag: 'beta', to: '/chat', Icon: MessageCircle },
-  { label: 'Journal', tag: 'beta', to: '/journal', Icon: NotebookPen },
-];
-
-function ExperimentsMenu({ active = false }) {
+function NavMenu({ label, Icon, items, active = false }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -48,16 +44,16 @@ function ExperimentsMenu({ active = false }) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Experiments"
+        aria-label={label}
       >
-        <FlaskConical size={15} aria-hidden="true" />
-        <span className="nav-btn__label">Experiments</span>
+        <Icon size={15} aria-hidden="true" />
+        <span className="nav-btn__label">{label}</span>
         <ChevronDown size={14} className="menu__caret" aria-hidden="true" />
       </button>
 
       {open && (
         <div className="menu__panel" role="menu">
-          {ITEMS.map(({ label, tag, to, Icon }) => (
+          {items.map(({ label: itemLabel, tag, to, Icon: ItemIcon }) => (
             <button
               key={to}
               type="button"
@@ -68,8 +64,8 @@ function ExperimentsMenu({ active = false }) {
                 navigate(to);
               }}
             >
-              <Icon size={16} aria-hidden="true" />
-              {label}
+              <ItemIcon size={16} aria-hidden="true" />
+              {itemLabel}
               {tag && <span className="menu__tag">({tag})</span>}
             </button>
           ))}
@@ -79,4 +75,4 @@ function ExperimentsMenu({ active = false }) {
   );
 }
 
-export default ExperimentsMenu;
+export default NavMenu;
