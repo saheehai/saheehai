@@ -1,0 +1,13 @@
+{
+  "_comment": [
+    "The people behind Saheeh AI. Rendered on /team and linked from the footer and the",
+    "front page; both hide themselves, and the sitemap skips /team, while `directors` is",
+    "empty, so the page goes live the moment the first entry is filled in and merged.",
+    "Each person: name; role (one line, e.g. 'Founder and director'); bio (one or two",
+    "sentences); photo (optional path under public/, square, at least 400px, e.g.",
+    "'/team/first-last.jpg'); links (optional list of {label, url})."
+  ],
+  "founded": 2026,
+  "directors": [],
+  "advisors": []
+}

@@ -1,6 +1,6 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "Saheeh AI",
+  "short_name": "Saheeh AI",
   "icons": [
     {
       "src": "/saheeh-favicon/web-app-manifest-192x192.png",
@@ -15,7 +15,9 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
-  "background_color": "#ffffff",
-  "display": "standalone"
+  "theme_color": "#6B4423",
+  "background_color": "#FFF8E7",
+  "display": "standalone",
+  "description": "A Texas nonprofit making health information and support easier to reach.",
+  "start_url": "/"
 }
