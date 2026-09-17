@@ -230,6 +230,7 @@ def test_unknown_email_exports_nothing_held(clients):
         "conversations": 0,
         "chat_messages": 0,
         "journal_entries": 0,
+        "profile": 0,
         "newsletter": 0,
         "quota_rows": 0,
     }
@@ -238,7 +239,7 @@ def test_unknown_email_exports_nothing_held(clients):
 def test_export_has_every_section(clients):
     doc = dr.build_export(clients, EMAIL, reference="#7")
     assert set(doc) == {
-        "generated_at", "request", "policy", "account", "chat", "journal",
+        "generated_at", "request", "policy", "account", "profile", "chat", "journal",
         "newsletter", "quota", "not_included",
     }
     assert doc["request"] == {"email": EMAIL, "reference": "#7"}
@@ -298,7 +299,7 @@ def test_export_quota_is_counts_only(clients):
     assert doc["quota"] == {
         "windows_checked": 4,
         "rows_found": 1,
-        "note": "Daily message counters, no content. They expire within about two days.",
+        "note": "Daily usage counters, no content. They expire within about two days.",
     }
 
 
@@ -320,7 +321,7 @@ def test_delete_removes_only_this_persons_rows(clients):
     assert clients.cognito.deleted == ["someone-uuid"]
     stranger_intact(clients)
     assert dr.verify_gone(clients, EMAIL) == {
-        "account": 0, "journal": 0, "chat": 0, "quota": 0, "subscriber": 0,
+        "account": 0, "journal": 0, "chat": 0, "quota": 0, "profile": 0, "subscriber": 0,
     }
 
 
@@ -457,3 +458,76 @@ def test_main_never_prints_the_address_on_aws_failure(monkeypatch, capsys, log):
     printed = capsys.readouterr()
     assert EMAIL not in printed.err + printed.out
     assert "DeleteItem Boom" in printed.err
+
+
+# --- The user index and the profile table ----------------------------------
+
+
+class IndexedChatTable(FakeTable):
+    """The chat table with its keys-only user index."""
+
+    def query(self, KeyConditionExpression, ExpressionAttributeValues, **kwargs):
+        index = kwargs.get("IndexName")
+        self.log.append(f"{self.name}.query[{index or 'base'}]")
+        if index:
+            uid = ExpressionAttributeValues[":uid"]
+            rows = [
+                {"conversation_id": r["conversation_id"], "timestamp": r["timestamp"],
+                 "user_id": r["user_id"]}
+                for r in self.rows
+                if r["user_id"] == uid
+            ]
+        else:
+            cid = ExpressionAttributeValues[":cid"]
+            rows = [r for r in self.rows if r["conversation_id"] == cid]
+        return self._page(sorted(rows, key=lambda r: r["timestamp"]), kwargs)
+
+
+def test_collect_chat_uses_the_index_when_named_and_never_scans(log):
+    c = make_clients(log)
+    c.chat = IndexedChatTable("chat", ("conversation_id", "timestamp"), c.chat.rows, log)
+    c.chat_index = "by_user"
+    rows = dr.collect_chat(c, SUB)
+    assert sorted(int(r["timestamp"]) for r in rows) == sorted(
+        int(r["timestamp"]) for r in c.chat.rows if r["user_id"] == SUB
+    )
+    assert "chat.scan" not in log
+    assert "chat.query[by_user]" in log
+
+
+def test_collect_chat_scans_when_no_index_is_configured(clients):
+    dr.collect_chat(clients, SUB)
+    assert "chat.scan" in clients.chat.log
+
+
+def test_delete_and_export_cover_the_profile_row(log):
+    c = make_clients(log)
+    c.profiles = FakeTable(
+        "profiles",
+        ("user_id",),
+        [{"user_id": SUB, "nickname": "Sam"}, {"user_id": STRANGER_SUB, "nickname": "S"}],
+        log,
+    )
+    doc = dr.build_export(c, EMAIL)
+    assert doc["profile"]["nickname"] == "Sam"
+    assert dr.export_counts(doc)["profile"] == 1
+
+    result = dr.delete_all(c, EMAIL, confirm=EMAIL)
+    assert result.profile == 1
+    assert c.profiles.get_item({"user_id": STRANGER_SUB})
+    assert dr.verify_gone(c, EMAIL)["profile"] == 0
+
+
+def test_quota_keys_include_the_account_counters():
+    keys = dr.quota_keys(SUB, now=0)
+    assert any("#account#" in k for k in keys)
+    assert len(keys) == 2 * (dr.QUOTA_WINDOWS_BACK + dr.QUOTA_WINDOWS_FORWARD + 1)
+
+
+def test_keep_account_counters_leaves_them_for_the_self_service_path(log):
+    c = make_clients(log)
+    window = int(time.time()) // config.QUOTA_WINDOW_SECONDS
+    c.quota.rows.append({"quota_key": f"{SUB}#account#{window}", "request_count": Decimal(1)})
+    result = dr.delete_rows(c, SUB, keep_account_counters=True)
+    assert result.quota == 1
+    assert c.quota.get_item({"quota_key": f"{SUB}#account#{window}"})

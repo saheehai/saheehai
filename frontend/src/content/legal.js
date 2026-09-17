@@ -142,13 +142,19 @@ real money that would otherwise go to the people we serve. You agree not to:
   infrastructure, or access it in any way other than through the interface we
   provide;
 - upload anything that infringes someone else's rights or that you do not
-  have the right to share.
+  have the right to share;
+- use a profile picture or nickname that is graphic, sexual, violent,
+  hateful or harassing, that shows a child, or that shows someone else
+  without their permission. Your picture is shown only to you, but this
+  rule still applies.
 
-We may limit, suspend or close accounts that violate these Terms.
+We may limit, suspend or close accounts that violate these Terms. An
+account with a picture or name that breaks the rule above will be closed.
 
 ## 10. Your content
 
-You keep ownership of what you write in the chat and the journal ("Your
+You keep ownership of what you write in the chat and the journal, and of
+the nickname and picture you put on your profile ("Your
 Content"). You give us a limited, non-exclusive license to store, process,
 transmit and display Your Content solely to operate, secure and improve the
 Service. We do not sell Your Content, we do not use it for advertising, and
@@ -254,6 +260,12 @@ protocol (SRP) handled by Amazon Cognito, and only a salted hash is stored.
 We also record that you confirmed you are 18 or older, and the date of the
 Terms and this policy that you accepted when you created the account.
 
+**Profile (optional).** A nickname and a small picture, if you choose to add
+them on the Account page. They are shown only to you. The nickname is also
+given to the companion so it can address you by it. Your browser shrinks
+the picture to a small square before sending it, which removes any
+information the original file carried, such as where a photo was taken.
+
 **Chat messages (Experiments, beta).** What you write to the companion and
 what it writes back, together with a conversation identifier so a
 conversation can continue. The companion may respond to what you share,
@@ -333,11 +345,12 @@ organization, your data would move with it under this policy.
 
 ## 4. How long we keep it
 
-Your account, chat history and journal are kept for as long as your account
-exists. Server logs are kept for 30 days. If you ask us to delete your
-account, we delete your account, chat history and journal entries within 30
-days, except for copies we must keep to meet a legal obligation or that
-remain briefly in backups. A newsletter address is kept until you
+Your account, chat history, journal and profile are kept for as long as
+your account exists. Server logs are kept for 30 days. Deleting your
+account from the Account page removes your account, chat history, journal
+entries and profile straight away. If you ask us to do it instead, we do
+it within 30 days. Either way, copies may remain briefly in backups, or
+where we must keep them to meet a legal obligation. A newsletter address is kept until you
 unsubscribe, and deleted within 30 days after.
 
 ## 5. Security
@@ -379,9 +392,11 @@ which law applies to you. Whatever your location, you can:
 - **Object** to or restrict a particular use of your information;
 - **Complain** to a supervisory authority where you live.
 
-To exercise any of these, [contact us](${CONTACT_URL}) from the email address
-on your account, or tell us another way to confirm it is you. We will answer
-within 45 days.
+The first three are on the Account page when you are signed in: download a
+copy of your data, change your email address, delete your chats and journal,
+or delete the whole account. For anything else, or if you would rather we
+did it, [contact us](${CONTACT_URL}) from the email address on your account,
+or tell us another way to confirm it is you. We will answer within 45 days.
 
 **Texas.** Texas residents have the rights above under the Texas Data
 Privacy and Security Act. We do not sell personal data, do not use it for

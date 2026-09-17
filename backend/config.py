@@ -56,6 +56,14 @@ COGNITO_USER_POOL_ID = os.environ.get("COGNITO_USER_POOL_ID", "")
 CHAT_TABLE = os.environ.get("CHAT_TABLE", "saheeh_chat_history")
 JOURNAL_TABLE = os.environ.get("JOURNAL_TABLE", "saheeh_journal")
 QUOTA_TABLE = os.environ.get("QUOTA_TABLE", "saheeh_quota")
+# One item per account: nickname and a small picture, shown only to its owner.
+PROFILE_TABLE = os.environ.get("PROFILE_TABLE", "saheeh_profiles")
+# Keys-only index on the chat table (hash user_id, range timestamp) so one
+# person's conversations can be found without scanning everyone's. The chat
+# table is not managed by the stack, so the index is created by hand
+# (DEPLOYMENT.md, "Account routes"). Empty means scan, which only the
+# operator tool has permission to do.
+CHAT_USER_INDEX = os.environ.get("CHAT_USER_INDEX", "")
 
 # --- Newsletter ------------------------------------------------------------
 
@@ -88,3 +96,19 @@ MAX_HISTORY_MESSAGES = int(os.environ.get("MAX_HISTORY_MESSAGES", 40))
 MAX_JOURNAL_CHARS = int(os.environ.get("MAX_JOURNAL_CHARS", 20000))
 MAX_JOURNAL_TITLE_CHARS = int(os.environ.get("MAX_JOURNAL_TITLE_CHARS", 200))
 MAX_JOURNAL_TAGS = int(os.environ.get("MAX_JOURNAL_TAGS", 20))
+
+# --- Account ---------------------------------------------------------------
+
+# The nickname is the one piece of user text that reaches the system prompt,
+# so it is short and drawn from a small alphabet (profile_rules.py).
+MAX_NICKNAME_CHARS = int(os.environ.get("MAX_NICKNAME_CHARS", 30))
+# The browser resizes a picture to 128px before sending; a JPEG that size is
+# well under 20 KB. The cap is generous for PNG and still far below DynamoDB's
+# 400 KB item limit.
+MAX_AVATAR_BYTES = int(os.environ.get("MAX_AVATAR_BYTES", 96 * 1024))
+# Export and delete read a person's whole history. A handful a day is plenty
+# for anyone doing it by hand, and stops a script turning them into a cost.
+ACCOUNT_ACTION_QUOTA = int(os.environ.get("ACCOUNT_ACTION_QUOTA", 5))
+# Lambda cannot return more than 6 MB. Above this the export is handed off to
+# the operator workflow instead of failing opaquely.
+MAX_EXPORT_BYTES = int(os.environ.get("MAX_EXPORT_BYTES", 5 * 1024 * 1024))

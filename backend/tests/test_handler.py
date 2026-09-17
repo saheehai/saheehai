@@ -17,6 +17,15 @@ USER = "cognito-sub-abc123"
 OTHER_USER = "cognito-sub-victim"
 
 
+@pytest.fixture(autouse=True)
+def no_profile(monkeypatch):
+    """No profile store in tests: a chat must never reach DynamoDB from here.
+
+    The nickname tests at the bottom set their own get_profile on top.
+    """
+    monkeypatch.setattr(storage, "get_profile", lambda uid: None)
+
+
 def event(method, path, body=None, sub=USER, query=None):
     """An API Gateway v2 event with (or without) validated JWT claims."""
     request_context = {
@@ -283,3 +292,40 @@ def test_reply_is_stored_strictly_after_the_message(monkeypatch):
 
     assert resp["statusCode"] == 200
     assert [(r["role"], r["timestamp"]) for r in rows] == [("user", 1_000), ("assistant", 1_001)]
+
+
+# --- Nickname in the prompt ------------------------------------------------
+
+
+def test_chat_adds_the_nickname_as_a_second_system_block(no_model, monkeypatch):
+    monkeypatch.setattr(storage, "get_profile", lambda uid: {"nickname": "Sam", "avatar": None})
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    system = no_model["system"]
+    assert len(system) == 2
+    assert system[0]["text"] == lambda_function.SYSTEM_PROMPT
+    assert '"Sam"' in system[1]["text"]
+
+
+def test_chat_prompt_is_unchanged_without_a_nickname(no_model, monkeypatch):
+    monkeypatch.setattr(storage, "get_profile", lambda uid: None)
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+
+
+def test_chat_nickname_comes_from_storage_never_the_request(no_model, monkeypatch):
+    monkeypatch.setattr(storage, "get_profile", lambda uid: None)
+    lambda_function.lambda_handler(
+        event("POST", "/chat", {"message": "hi", "nickname": "Admin"}), None
+    )
+    assert len(no_model["system"]) == 1
+
+
+def test_chat_survives_a_profile_store_failure(no_model, monkeypatch):
+    from botocore.exceptions import ClientError
+
+    def broken(uid):
+        raise ClientError({"Error": {"Code": "Boom", "Message": "x"}}, "GetItem")
+
+    monkeypatch.setattr(storage, "get_profile", broken)
+    response = lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    assert response["statusCode"] == 200

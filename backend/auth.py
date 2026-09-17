@@ -19,6 +19,17 @@ class AuthError(Exception):
     """Caller could not be identified. Always surfaces as 401."""
 
 
+def claims_from_event(event: dict) -> dict:
+    """The validated id-token claims API Gateway attached to the request."""
+    claims = (
+        (event.get("requestContext") or {})
+        .get("authorizer", {})
+        .get("jwt", {})
+        .get("claims", {})
+    )
+    return claims if isinstance(claims, dict) else {}
+
+
 def user_id_from_event(event: dict) -> str:
     """Cognito subject for the caller.
 
@@ -27,14 +38,7 @@ def user_id_from_event(event: dict) -> str:
     missing claim therefore means a misconfigured authorizer, not a forged
     request - either way there is no identity, so refuse.
     """
-    claims = (
-        (event.get("requestContext") or {})
-        .get("authorizer", {})
-        .get("jwt", {})
-        .get("claims", {})
-    )
-
-    subject = claims.get("sub")
+    subject = claims_from_event(event).get("sub")
     if not isinstance(subject, str) or not subject:
         raise AuthError("No subject claim on the request")
 

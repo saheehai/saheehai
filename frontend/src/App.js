@@ -28,6 +28,8 @@ import MessageBubble from "./components/MessageBubble";
 import TypingIndicator from "./components/TypingIndicator";
 import ChatInputBar from "./components/ChatInputBar";
 import AuthPage from "./components/AuthPage";
+import AccountPage from "./components/AccountPage";
+import { ProfileProvider } from "./context/ProfileContext";
 import * as cognito from "./services/cognitoService";
 import { usePersistedState } from "./hooks/usePersistedState";
 import { useIdleSignOut } from "./hooks/useIdleSignOut";
@@ -45,6 +47,7 @@ const PERSONAL_LOCAL_KEYS = [
   STORAGE_KEYS.journalDraft,
   STORAGE_KEYS.disclaimerAccepted,
   STORAGE_KEYS.lastActive,
+  STORAGE_KEYS.profile,
 ];
 
 function ChatPage({ onSignOut }) {
@@ -312,6 +315,7 @@ function App() {
 
   return (
     <Router>
+      <ProfileProvider enabled={isAuthenticated === true}>
       <Routes>
         {/* The front page is who we are, signed in or not. */}
         <Route
@@ -399,9 +403,18 @@ function App() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/account"
+          element={
+            <RequireAuth authed={isAuthenticated}>
+              <AccountPage onSignOut={handleSignOut} />
+            </RequireAuth>
+          }
+        />
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </ProfileProvider>
     </Router>
   );
 }

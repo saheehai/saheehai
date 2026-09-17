@@ -3,7 +3,7 @@ export const COLORS = {
   cream: '#FFF8E7',
   darkBrown: '#5D4E37',
   lightCream: '#F5E6D3',
-  mediumBrown: '#8B6B47',
+  mediumBrown: '#7A5C3C',
   brownBorder: 'rgba(93, 78, 55, 0.3)',
   brownBorderLight: 'rgba(93, 78, 55, 0.2)',
   brownHover: 'rgba(107, 68, 35, 0.1)',
@@ -119,4 +119,5 @@ export const STORAGE_KEYS = {
   disclaimerAccepted: 'saheehAI_disclaimerAccepted',
   lastActive: 'saheehAI_lastActive',
   idleSignedOut: 'saheehAI_idleSignedOut',
+  profile: 'saheehAI_profile',
 };

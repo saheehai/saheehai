@@ -102,6 +102,10 @@ jobs:
           JOURNAL_TABLE: ${{ vars.JOURNAL_TABLE || 'saheeh_journal' }}
           QUOTA_TABLE: ${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}-quota
           SUBSCRIBER_TABLE: ${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}-subscribers
+          PROFILE_TABLE: ${{ vars.BACKEND_STACK_NAME || 'saheehai-backend' }}-profiles
+          # Left empty on purpose: the deploy role may scan, and a scan also
+          # finds rows the index would miss if it were ever backfilling.
+          CHAT_USER_INDEX: ''
         run: |
           python data_request.py \
             --email "$DATA_REQUEST_EMAIL" \

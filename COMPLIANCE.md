@@ -33,6 +33,7 @@ Experiments; the site collects nothing beyond a confirmed newsletter address.
 | Consent record: 18+ attestation, date of the Terms accepted | Cognito user attributes `custom:age_attested`, `custom:policies_accepted` | Life of account | Written once at sign-up, required by the PreSignUp trigger, immutable |
 | Chat messages and replies | DynamoDB `saheeh_chat_history` | Life of account | Keyed by Cognito `sub`; conversation ownership enforced server-side |
 | Journal entries, mood | DynamoDB `saheeh_journal` | Life of account | Keyed by Cognito `sub` |
+| Profile: nickname, small picture (both optional) | DynamoDB `saheehai-backend-profiles` | Life of account | Keyed by Cognito `sub`; shown only to the owner; picture is a 128px JPEG the browser made, so no EXIF; nickname is given to the companion |
 | Daily quota counters | DynamoDB `saheehai-backend-quota` | ~2 days (TTL) | No content |
 | Newsletter address, token, sign-up page, timestamps | DynamoDB `saheehai-backend-subscribers` | Until unsubscribe, then 30 days (TTL) | Double opt-in via SES; no IP, no name. Turnstile on the form |
 | Function logs | CloudWatch | 30 days | Ids and errors only; no message or entry text |
@@ -84,7 +85,8 @@ and some cost a little money. None has been made yet.
    Access Control so only CloudFront can read it. Medium effort; do it when
    the CloudFront `/api/*` behavior is being added (DEPLOYMENT.md).
 4. **Response headers policy** on CloudFront: HSTS, `X-Content-Type-Options`,
-   a Content-Security-Policy. No cost.
+   a Content-Security-Policy. No cost. The policy will need
+   `img-src 'self' data:`, since profile pictures are inline data URLs.
 5. **AWS BAA** (accept in AWS Artifact) and **Cloudflare** terms review,
    only if and when a covered entity relationship starts.
 6. **Written policies**: risk analysis, incident response, workforce access
@@ -158,14 +160,22 @@ No cookie banner is needed while there are no cookies.
 | "Not available in [state]" | `backend/geo.py` + CloudFront viewer headers |
 | "Nothing is sent until you click the confirmation link" | `backend/subscribe.py`: pending until `/subscribe/confirm` |
 | "Unsubscribing deletes the address within 30 days" | `expires_at` TTL set on unsubscribe; table TTL enabled |
-| "See what we hold about you, and get a copy" | `backend/data_request.py --action export`, run by `.github/workflows/data-request.yml`; runbook in DEPLOYMENT.md |
-| "Delete your account, chat history and journal within 30 days" | `backend/data_request.py --action delete`: tables first, Cognito last, then a remaining-rows check; same workflow |
+| "See what we hold about you, and get a copy" | Self-service: `GET /account/export` (`backend/account.py`) from the Account page. By request: `backend/data_request.py --action export`, run by `.github/workflows/data-request.yml`; runbook in DEPLOYMENT.md |
+| "Correct your email address" | Account page, browser to Cognito; the new address must be verified before it takes effect (`infra/backend.yaml`, `AttributesRequireVerificationBeforeUpdate`) |
+| "Delete your account, chat history, journal and profile" | Self-service: `POST /account/delete` removes the rows, then the browser deletes the Cognito user with the person's own session, account last. By request: `backend/data_request.py --action delete`: tables first, Cognito last, then a remaining-rows check; same workflow |
+| "Your picture is shown only to you" | The picture is stored in the profile row and served only by the authenticated `GET /profile` for that subject; there is no bucket and no public URL |
 | "You must be 18 or older" and "you agree to the Terms" | Two separate boxes on sign-up; `backend/presignup.py` rejects a sign-up without them; recorded as `custom:age_attested` and `custom:policies_accepted` |
 | "You are talking to an AI" | `DisclaimerModal`, Terms §5 |
 
 ## Operational access
 
-Data requests run in GitHub Actions under the deploy role, which holds
+Most export and delete requests never reach an operator: the Account page
+serves them to the signed-in person directly, and the API access log
+records the call (subject, route, time, no body) as the audit record. The
+API function may now delete rows, but only under the caller's own subject,
+and it still cannot scan a table or touch Cognito.
+
+Requests that arrive by email run in GitHub Actions under the deploy role, which holds
 `dynamodb:*` and `cognito-idp:*` on every resource. That is enough, and more
 than the job needs; a narrower role is a follow-up. Only the `saheehai`
 GitHub account can start the workflow, and each run is logged with who ran

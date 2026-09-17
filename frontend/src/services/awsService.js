@@ -28,6 +28,14 @@ class AWSService {
     return `${this.baseEndpoint}/journal`;
   }
 
+  get profileEndpoint() {
+    return `${this.baseEndpoint}/profile`;
+  }
+
+  get accountEndpoint() {
+    return `${this.baseEndpoint}/account`;
+  }
+
   /**
    * Authenticated request.
    *
@@ -116,6 +124,47 @@ class AWSService {
       console.error('Journal fetch error:', error.message);
       throw error;
     }
+  }
+
+  // --- Account -------------------------------------------------------------
+
+  /** Nickname and picture, or an empty object. */
+  async getProfile() {
+    const data = await this._request(this.profileEndpoint);
+    return data.profile || {};
+  }
+
+  /** Replace the profile. Empty strings clear a field. */
+  async saveProfile({ nickname = '', avatar = '' }) {
+    const data = await this._request(this.profileEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({ nickname, avatar }),
+    });
+    return data.profile || {};
+  }
+
+  /** Everything held for the signed-in person, as the export document. */
+  exportData() {
+    return this._request(`${this.accountEndpoint}/export`);
+  }
+
+  /** Chats, journal and profile gone; the account stays. */
+  deleteData() {
+    return this._request(`${this.accountEndpoint}/delete-data`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm: 'DELETE' }),
+    });
+  }
+
+  /**
+   * Remove everything in the tables ahead of deleting the account itself.
+   * The confirmation is the person's own email, typed by them.
+   */
+  deleteAccountData(confirmEmail) {
+    return this._request(`${this.accountEndpoint}/delete`, {
+      method: 'POST',
+      body: JSON.stringify({ confirm: confirmEmail }),
+    });
   }
 }
 

@@ -367,10 +367,44 @@ step that echoes an input.
 ### Follow-ups
 
 The deploy role's `dynamodb:*` and `cognito-idp:*` on every resource is more
-than this needs; a narrower role for data requests is worth doing. The chat
-table has no index on `user_id`, so the tool scans it; a keys-only index
-fixes that if the table grows. A monitored contact inbox would stop requests
-landing in a public tracker.
+than this needs; a narrower role for data requests is worth doing. A
+monitored contact inbox would stop requests landing in a public tracker.
+If someone asks about an address that finds nothing, ask whether they
+changed their email on the Account page: the account is under the new one.
+
+## Account routes
+
+The Account page serves export and delete to the signed-in person directly
+(`backend/account.py`). Most requests never reach the workflow above. Two
+things about the setup are not in the template.
+
+**The chat table's user index.** The function finds one person's
+conversations through a global secondary index on `saheeh_chat_history`
+(hash `user_id`, range `timestamp`), named by the `ChatUserIndexName`
+parameter. The live table already carries one, `user-conversations-index`,
+left from the original console setup, and that is the default. The table is
+not managed by the stack, so if the table is ever rebuilt the index must be
+recreated by hand before the account routes work; without it every account
+route that touches chat fails with a 502, because the function has no
+permission to scan. A keys-only projection is enough:
+
+```bash
+aws dynamodb update-table --table-name saheeh_chat_history \
+  --attribute-definitions AttributeName=user_id,AttributeType=S AttributeName=timestamp,AttributeType=N \
+  --global-secondary-index-updates '[{"Create":{"IndexName":"user-conversations-index","KeySchema":[{"AttributeName":"user_id","KeyType":"HASH"},{"AttributeName":"timestamp","KeyType":"RANGE"}],"Projection":{"ProjectionType":"KEYS_ONLY"}}}]'
+aws dynamodb describe-table --table-name saheeh_chat_history \
+  --query 'Table.GlobalSecondaryIndexes[].{name:IndexName,status:IndexStatus}'
+```
+
+Wait for `ACTIVE` before relying on it.
+
+**Order of deletion.** `POST /account/delete` removes the person's rows and
+returns what is left; the browser then deletes the Cognito user with the
+person's own session (`deleteUser`), so the account goes last and the
+function holds no Cognito permission. If the second step fails, the page
+says so and offers a retry; the rows are already gone. A signed-in session
+can still write for up to an hour after, as with the workflow, so a rare
+orphan row under a deleted subject is possible and harmless.
 
 ## Geographic restriction
 

@@ -80,8 +80,125 @@ function friendlyError(err) {
         .replace(/\.$/, '');
       return new Error(reason || 'Sign-up was refused.');
     }
+    case 'AliasExistsException':
+      return new Error('An account with that email already exists.');
     default:
       return new Error(err?.message || 'Something went wrong. Please try again.');
+  }
+}
+
+/**
+ * The signed-in person's CognitoUser with a live session attached.
+ *
+ * The SDK's account methods (changePassword, updateAttributes, deleteUser)
+ * all need getSession to have run on the same object first. Rejects when
+ * nobody is signed in.
+ */
+function currentUser() {
+  return new Promise((resolve, reject) => {
+    let user;
+    try {
+      user = userPool().getCurrentUser();
+    } catch (err) {
+      return reject(err);
+    }
+    if (!user) return reject(new Error('Your session has ended. Please sign in again.'));
+    user.getSession((err, session) => {
+      if (err || !session?.isValid()) {
+        return reject(new Error('Your session has ended. Please sign in again.'));
+      }
+      resolve(user);
+    });
+  });
+}
+
+/** Email and whether it is verified, for the Account page. */
+export async function getAccount() {
+  const user = await currentUser();
+  return new Promise((resolve, reject) => {
+    user.getUserAttributes((err, attributes) => {
+      if (err) return reject(friendlyError(err));
+      const map = Object.fromEntries((attributes || []).map((a) => [a.getName(), a.getValue()]));
+      resolve({ email: map.email || '', emailVerified: map.email_verified === 'true' });
+    });
+  });
+}
+
+/** Change the password of the signed-in person. Needs the current one. */
+export async function changePassword(currentPassword, newPassword) {
+  const user = await currentUser();
+  return new Promise((resolve, reject) => {
+    user.changePassword(currentPassword, newPassword, (err) => {
+      if (!err) return resolve();
+      const code = err?.code || err?.name;
+      if (code === 'NotAuthorizedException') {
+        return reject(new Error('Your current password is not right.'));
+      }
+      reject(friendlyError(err));
+    });
+  });
+}
+
+/**
+ * Start an email change. Cognito emails a code to the new address; the old
+ * one stays in force until confirmEmailChange succeeds, so a typo cannot
+ * lock anyone out.
+ */
+export async function requestEmailChange(newEmail) {
+  const user = await currentUser();
+  return new Promise((resolve, reject) => {
+    user.updateAttributes(
+      [new CognitoUserAttribute({ Name: 'email', Value: newEmail.trim().toLowerCase() })],
+      (err) => (err ? reject(friendlyError(err)) : resolve())
+    );
+  });
+}
+
+export async function resendEmailChangeCode() {
+  const user = await currentUser();
+  return new Promise((resolve, reject) => {
+    user.getAttributeVerificationCode('email', {
+      onSuccess: () => resolve(),
+      onFailure: (err) => reject(friendlyError(err)),
+    });
+  });
+}
+
+/**
+ * Finish an email change with the emailed code, then refresh the session so
+ * the id token carries the new address.
+ */
+export async function confirmEmailChange(code) {
+  const user = await currentUser();
+  await new Promise((resolve, reject) => {
+    user.verifyAttribute('email', code.trim(), {
+      onSuccess: () => resolve(),
+      onFailure: (err) => reject(friendlyError(err)),
+    });
+  });
+  await new Promise((resolve) => {
+    user.getSession((err, session) => {
+      if (err || !session) return resolve();
+      user.refreshSession(session.getRefreshToken(), () => resolve());
+    });
+  });
+}
+
+/**
+ * Delete the signed-in person's Cognito account, with their own session.
+ *
+ * Called by the Account page after the API has removed their rows, so the
+ * account goes last and nothing is stranded. Tokens are cleared locally too.
+ */
+export async function deleteAccount() {
+  const user = await currentUser();
+  await new Promise((resolve, reject) => {
+    user.deleteUser((err) => (err ? reject(friendlyError(err)) : resolve()));
+  });
+  try {
+    user.signOut();
+  } catch {
+    /* the account is already gone */
   }
 }
 

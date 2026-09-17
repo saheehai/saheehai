@@ -10,9 +10,12 @@ import {
   MessageCircle,
   Newspaper,
   NotebookPen,
+  UserRound,
 } from 'lucide-react';
 import Header from './Header';
 import NavMenu from './NavMenu';
+import Avatar from './Avatar';
+import { useProfile } from '../context/ProfileContext';
 
 /**
  * The one header every page shares: the name on the left, everything else on
@@ -20,10 +23,13 @@ import NavMenu from './NavMenu';
  * between pages never rearranges the top of the screen. Labels drop to
  * icons on phones.
  *
- * Two dropdowns keep the header short. Both experiments (chat and journal)
+ * Three dropdowns keep the header short. Both experiments (chat and journal)
  * live under Experiments, which keeps the beta things together. The guides,
- * the crisis lines and the news live under Resources. The footer still puts
- * 988 on every page, so a crisis line is one tap away without the menu.
+ * the crisis lines and the news live under Resources. The account menu, on
+ * the far right behind the person's picture, holds the Account page and
+ * Sign out: one deliberate tap to leave, rather than the last of a row of
+ * small icons. The footer still puts 988 on every page, so a crisis line is
+ * one tap away without the menu.
  */
 
 // Everything under Experiments is beta, and says so: the companion is a
@@ -59,6 +65,7 @@ function NavButton({ to, Icon, children, active, onClick }) {
 function SiteNav({ signedIn, onSignOut }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { profile } = useProfile();
   const at = (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`);
 
   const signOut = () => {
@@ -66,6 +73,8 @@ function SiteNav({ signedIn, onSignOut }) {
     // The front page, not the sign-in card a protected route would bounce to.
     navigate('/', { replace: true });
   };
+
+  const nickname = profile?.nickname || '';
 
   return (
     <Header
@@ -92,9 +101,17 @@ function SiteNav({ signedIn, onSignOut }) {
             <NavButton to="/" Icon={Info} active={pathname === '/'}>
               About Us
             </NavButton>
-            <NavButton Icon={LogOut} onClick={signOut}>
-              Sign Out
-            </NavButton>
+            <NavMenu
+              label={nickname || 'Account'}
+              Icon={UserRound}
+              trigger={<Avatar src={profile?.avatar} name={nickname} size={24} />}
+              className="account-btn"
+              items={[
+                { label: 'Account', to: '/account', Icon: UserRound },
+                { label: 'Sign out', onSelect: signOut, Icon: LogOut, divider: true },
+              ]}
+              active={at('/account')}
+            />
           </>
         ) : (
           <>
