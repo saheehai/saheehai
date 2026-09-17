@@ -30,6 +30,10 @@ export const TRACKS = {
     title: 'Mental health basics',
     blurb: 'What the different kinds of help are, what a first appointment is like, and how to talk about it.',
   },
+  foundations: {
+    title: 'The foundations',
+    blurb: 'The most common starting points, and what most therapists build from.',
+  },
 };
 
 const ERROR = 'Could not load the resources right now. Please try again in a moment.';
