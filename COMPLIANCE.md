@@ -33,7 +33,7 @@ Experiments; the site collects nothing beyond a confirmed newsletter address.
 | Consent record: 18+ attestation, date of the Terms accepted | Cognito user attributes `custom:age_attested`, `custom:policies_accepted` | Life of account | Written once at sign-up, required by the PreSignUp trigger, immutable |
 | Chat messages and replies | DynamoDB `saheeh_chat_history` | Life of account | Keyed by Cognito `sub`; conversation ownership enforced server-side |
 | Journal entries, mood | DynamoDB `saheeh_journal` | Life of account | Keyed by Cognito `sub` |
-| Profile: nickname, small picture (both optional) | DynamoDB `saheehai-backend-profiles` | Life of account | Keyed by Cognito `sub`; shown only to the owner; picture is a 128px JPEG the browser made, so no EXIF; nickname is given to the companion |
+| Profile: nickname, small picture (both optional), and two sharing choices | DynamoDB `saheehai-backend-profiles` | Life of account | Keyed by Cognito `sub`; shown only to the owner; picture is a 128px JPEG the browser made, so no EXIF. `share_nickname` (default on) and `share_journal` (default off) decide what reaches the model; see "What the companion is given" below |
 | Daily quota counters | DynamoDB `saheehai-backend-quota` | ~2 days (TTL) | No content |
 | Newsletter address, token, sign-up page, timestamps | DynamoDB `saheehai-backend-subscribers` | Until unsubscribe, then 30 days (TTL) | Double opt-in via SES; no IP, no name. Turnstile on the form |
 | Function logs | CloudWatch | 30 days | Ids and errors only; no message or entry text |
@@ -164,6 +164,7 @@ No cookie banner is needed while there are no cookies.
 | "Correct your email address" | Account page, browser to Cognito; the new address must be verified before it takes effect (`infra/backend.yaml`, `AttributesRequireVerificationBeforeUpdate`) |
 | "Delete your account, chat history, journal and profile" | Self-service: `POST /account/delete` removes the rows, then the browser deletes the Cognito user with the person's own session, account last. By request: `backend/data_request.py --action delete`: tables first, Cognito last, then a remaining-rows check; same workflow |
 | "Your picture is shown only to you" | The picture is stored in the profile row and served only by the authenticated `GET /profile` for that subject; there is no bucket and no public URL |
+| "The companion sees only what you allow" | `backend/lambda_function.py` builds the system blocks from the profile row alone: the nickname block only when `share_nickname`, and the journal block only when `share_journal`. Neither can be switched on by a request body; `backend/tests/test_handler.py` holds a test for each |
 | "You must be 18 or older" and "you agree to the Terms" | Two separate boxes on sign-up; `backend/presignup.py` rejects a sign-up without them; recorded as `custom:age_attested` and `custom:policies_accepted` |
 | "You are talking to an AI" | `DisclaimerModal`, Terms §5 |
 

@@ -298,7 +298,11 @@ def test_reply_is_stored_strictly_after_the_message(monkeypatch):
 
 
 def test_chat_adds_the_nickname_as_a_second_system_block(no_model, monkeypatch):
-    monkeypatch.setattr(storage, "get_profile", lambda uid: {"nickname": "Sam", "avatar": None})
+    monkeypatch.setattr(
+        storage,
+        "get_profile",
+        lambda uid: {"nickname": "Sam", "avatar": None, "share_nickname": True},
+    )
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
     system = no_model["system"]
     assert len(system) == 2
@@ -329,3 +333,109 @@ def test_chat_survives_a_profile_store_failure(no_model, monkeypatch):
     monkeypatch.setattr(storage, "get_profile", broken)
     response = lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
     assert response["statusCode"] == 200
+
+
+def test_chat_leaves_the_nickname_out_when_sharing_is_off(no_model, monkeypatch):
+    """The switch on the Account page is what decides, not the stored name."""
+    monkeypatch.setattr(
+        storage,
+        "get_profile",
+        lambda uid: {"nickname": "Sam", "avatar": None, "share_nickname": False},
+    )
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+
+
+# --- Journal in the prompt -------------------------------------------------
+
+
+def _sharing_journal(monkeypatch, entries):
+    monkeypatch.setattr(
+        storage, "get_profile", lambda uid: {"nickname": None, "share_journal": True}
+    )
+    seen = {}
+
+    def fake_entries(user_id, limit):
+        seen.update(user_id=user_id, limit=limit)
+        return entries
+
+    monkeypatch.setattr(storage, "get_journal_entries", fake_entries)
+    return seen
+
+
+def test_chat_adds_the_journal_only_when_it_is_switched_on(no_model, monkeypatch):
+    _sharing_journal(monkeypatch, [{"content": "Slept badly again.", "title": "Tuesday"}])
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+
+    system = no_model["system"]
+    assert len(system) == 2
+    assert "Slept badly again." in system[1]["text"]
+    assert lambda_function.JOURNAL_START in system[1]["text"]
+    assert lambda_function.JOURNAL_END in system[1]["text"]
+
+
+def test_chat_never_reads_the_journal_when_sharing_is_off(no_model, monkeypatch):
+    monkeypatch.setattr(storage, "get_profile", lambda uid: {"share_journal": False})
+
+    def must_not_be_called(user_id, limit):
+        raise AssertionError("the journal was read without permission")
+
+    monkeypatch.setattr(storage, "get_journal_entries", must_not_be_called)
+
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+
+
+def test_chat_journal_is_read_for_the_token_subject_only(no_model, monkeypatch):
+    seen = _sharing_journal(monkeypatch, [{"content": "mine"}])
+    lambda_function.lambda_handler(
+        event("POST", "/chat", {"message": "hi", "user_id": OTHER_USER}), None
+    )
+    assert seen["user_id"] == USER
+
+
+def test_chat_journal_sharing_cannot_be_turned_on_by_the_request(no_model, monkeypatch):
+    monkeypatch.setattr(storage, "get_profile", lambda uid: None)
+
+    def must_not_be_called(user_id, limit):
+        raise AssertionError("the journal was read without permission")
+
+    monkeypatch.setattr(storage, "get_journal_entries", must_not_be_called)
+
+    lambda_function.lambda_handler(
+        event("POST", "/chat", {"message": "hi", "share_journal": True}), None
+    )
+    assert len(no_model["system"]) == 1
+
+
+def test_chat_journal_entries_are_capped(no_model, monkeypatch):
+    import config
+
+    seen = _sharing_journal(monkeypatch, [{"content": "y" * 5_000}])
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+
+    assert seen["limit"] == config.JOURNAL_CONTEXT_ENTRIES
+    text = no_model["system"][1]["text"]
+    body = text.split(lambda_function.JOURNAL_START)[1].split(lambda_function.JOURNAL_END)[0]
+    assert body.count("y") == config.JOURNAL_CONTEXT_CHARS
+
+
+def test_chat_survives_a_journal_read_failure(no_model, monkeypatch):
+    from botocore.exceptions import ClientError
+
+    monkeypatch.setattr(storage, "get_profile", lambda uid: {"share_journal": True})
+
+    def broken(user_id, limit):
+        raise ClientError({"Error": {"Code": "Boom", "Message": "x"}}, "Query")
+
+    monkeypatch.setattr(storage, "get_journal_entries", broken)
+
+    response = lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    assert response["statusCode"] == 200
+    assert len(no_model["system"]) == 1
+
+
+def test_chat_adds_no_journal_block_when_there_are_no_entries(no_model, monkeypatch):
+    _sharing_journal(monkeypatch, [])
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]

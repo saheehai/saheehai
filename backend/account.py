@@ -56,7 +56,10 @@ def _limited(user_id: str) -> dict | None:
 
 
 def handle_profile_get(event: dict, user_id: str) -> dict:
-    return respond(200, {"profile": storage.get_profile(user_id) or {}})
+    profile = storage.get_profile(user_id)
+    # Someone who has never opened the page still needs to see which way the
+    # switches are set, so the defaults answer rather than an empty object.
+    return respond(200, {"profile": profile or dict(storage.SHARE_DEFAULTS)})
 
 
 def handle_profile_save(event: dict, user_id: str) -> dict:
@@ -65,9 +68,12 @@ def handle_profile_save(event: dict, user_id: str) -> dict:
     try:
         nickname = profile_rules.clean_nickname(body.get("nickname"))
         avatar = profile_rules.validate_avatar(body.get("avatar"))
+        shares = profile_rules.clean_shares(body)
     except profile_rules.ProfileError as exc:
         return error(400, str(exc))
-    return respond(200, {"profile": storage.save_profile(user_id, nickname, avatar)})
+    return respond(
+        200, {"profile": storage.save_profile(user_id, nickname, avatar, **shares)}
+    )
 
 
 # --- Export ----------------------------------------------------------------

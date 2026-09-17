@@ -402,6 +402,29 @@ textarea:focus-visible {
     white-space: pre-wrap;
 }
 
+/* A reply can be several blocks now, so they need air between them. */
+.message-bubble__text + .message-bubble__text,
+.message-bubble__text + .message-bubble__list,
+.message-bubble__list + .message-bubble__text,
+.message-bubble__list + .message-bubble__list {
+    margin-top: 10px;
+}
+
+.message-bubble__list {
+    margin: 0;
+    padding-left: 22px;
+    font-size: 16px;
+    line-height: 1.45;
+}
+
+.message-bubble__list li + li {
+    margin-top: 4px;
+}
+
+.message-bubble strong {
+    font-weight: 600;
+}
+
 .message-bubble--user {
     background-color: var(--brown);
     color: white;
@@ -2154,6 +2177,8 @@ textarea::-webkit-scrollbar-thumb:hover {
 @media (prefers-reduced-motion: reduce) {
     .about-action,
     .auth-close,
+    .sharing-row__switch,
+    .sharing-row__switch::after,
     .help-item__action,
     .footer-crisis__action {
         transition: none !important;
@@ -2224,6 +2249,110 @@ textarea::-webkit-scrollbar-thumb:hover {
     font-size: 15px;
     line-height: 1.55;
     color: var(--dark-brown);
+}
+
+/* What the companion can see: one row per switch. */
+.sharing-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0;
+    border-top: 1px solid var(--brown-line);
+}
+
+.sharing-row:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.sharing-row__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    color: var(--brown);
+    background-color: var(--light-cream);
+}
+
+.sharing-row__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.sharing-row__title {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--brown);
+    cursor: pointer;
+}
+
+.sharing-row__note {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--medium-brown);
+}
+
+/* A checkbox drawn as a switch. It stays a real checkbox, so it keeps its
+   keyboard behaviour and announces itself through role="switch". */
+.sharing-row__switch {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    position: relative;
+    width: 46px;
+    height: 28px;
+    margin: 3px 0 0;
+    border: 2px solid var(--brown-line);
+    border-radius: 999px;
+    background-color: var(--cream);
+    cursor: pointer;
+    transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+}
+
+.sharing-row__switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--medium-brown);
+    transition: transform 0.15s var(--ease-out), background-color 0.15s var(--ease-out);
+}
+
+.sharing-row__switch:checked {
+    background-color: var(--brown);
+    border-color: var(--brown);
+}
+
+.sharing-row__switch:checked::after {
+    background-color: var(--cream);
+    transform: translateX(18px);
+}
+
+.sharing-row__switch:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.sharing-note {
+    margin: 16px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--medium-brown);
+}
+
+.sharing-note a {
+    color: var(--brown);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .account-avatar {

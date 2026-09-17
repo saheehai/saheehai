@@ -11,7 +11,7 @@
 
 import { CONTACT_HREF, CONTACT_LABEL, ORG_NAME } from './site';
 
-export const LAST_UPDATED = '2026-09-17';
+export const LAST_UPDATED = '2026-09-18';
 
 export { ORG_NAME };
 
@@ -261,10 +261,15 @@ We also record that you confirmed you are 18 or older, and the date of the
 Terms and this policy that you accepted when you created the account.
 
 **Profile (optional).** A nickname and a small picture, if you choose to add
-them on the Account page. They are shown only to you. The nickname is also
-given to the companion so it can address you by it. Your browser shrinks
+them on the Account page. They are shown only to you. Your browser shrinks
 the picture to a small square before sending it, which removes any
 information the original file carried, such as where a photo was taken.
+
+**Your sharing choices.** The Account page has two switches that decide what
+the companion is given: your nickname, and your recent journal entries. The
+nickname one starts on, because being called by your name is usually why
+people set one. The journal one starts off and only ever moves when you turn
+it on. We store which way you have set them so we can honour them.
 
 **Chat messages (Experiments, beta).** What you write to the companion and
 what it writes back, together with a conversation identifier so a
@@ -275,6 +280,14 @@ having stored.
 **Journal entries (Experiments, beta).** The text of each entry, the mood
 you pick (if any), and the date. Entries are tied to your account and are
 never shown to any other user.
+
+If, and only if, you switch on "Read my recent journal entries" on the
+Account page, your five most recent entries are sent with each chat message
+so the companion can refer to them. That means the text of those entries
+reaches our AI provider in the same way your chat messages already do. It is
+not used to train any model. Switch it off and the next message you send
+carries none of it. Your journal is never shown to another person either
+way, and nobody at Saheeh AI reads it.
 
 **Usage and technical data.** When your browser talks to our servers, the
 request is logged with your IP address, browser type, the time, the route
