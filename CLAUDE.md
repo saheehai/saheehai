@@ -85,27 +85,26 @@ Done in the account work: account pill replaces Sign Out; form labels tied
 to inputs; muted brown darkened; intro links on Resources and Support
 styled.
 
+Done since: `/signin` has a close control and Escape (its backdrop was
+already `inert`, so that half of the finding was stale); the crisis
+numbers on `/help` and in the footer are full-width rows at least 44 px
+tall; assistant bubbles carry the standard 2 px outline instead of
+sitting at about 1.16:1 against the page.
+
 Still open, roughly in priority order:
 
-1. `/signin`: the blurred chat behind the card is still in the tab order
-   and there is no close or back control. Make the backdrop `inert` and
-   add a way out.
-2. Phone numbers on `/help` and the footer 988 look like plain text. Make
-   them full-width tappable rows, at least 44 px tall.
-3. The chat greeting "Ask me anything!" is generic-chatbot voice. Name the
+1. The chat greeting "Ask me anything!" is generic-chatbot voice. Name the
    limits inside the chat shell, with a visible beta chip.
-4. No 404 page: unknown paths silently rewrite to `/`. No `href="/signin"`
+2. No 404 page: unknown paths silently rewrite to `/`. No `href="/signin"`
    anywhere, so sign-in is not linkable; its title is bare.
-5. Naming drift: "Chat" on the home page, "the companion" in prose,
+3. Naming drift: "Chat" on the home page, "the companion" in prose,
    "Experiments" in the nav, footer and Terms. Pick one.
-6. Radius ladder has five values and the auth card and menu panel use 1 px
+4. Radius ladder has five values and the auth card and menu panel use 1 px
    borders where cards use 2 px. Wrap the header nav in `<nav>`; make
    navigating buttons links; add a skip link.
-7. Assistant bubbles barely separate from the page (about 1.1:1). Fix
-   before touching anything else about the chat's look.
-8. A guide is publicly labelled DRAFT on `/resources`; hide or explain it.
+5. A guide is publicly labelled DRAFT on `/resources`; hide or explain it.
    The home page promises guides that do not exist yet.
-9. `/legal` would benefit from a plain-language summary above the text.
+6. `/legal` would benefit from a plain-language summary above the text.
    The italic closing line on the home page is unattributed.
 
 ## Rules that are easy to break
