@@ -4,6 +4,9 @@ What Saheeh AI does today about the laws people ask about, what is still to
 do, and who owns it. Written 2026-09-16 to go with the Terms of Use and
 Privacy Policy at `/legal` (source: `frontend/src/content/legal.js`).
 
+AI-specific risk, organised around the NIST AI Risk Management Framework,
+is in [AI-RISK.md](AI-RISK.md).
+
 This is an engineering record, not a legal opinion. "Compliant" is a
 conclusion a lawyer reaches about an organization, not a property of a
 codebase. What follows is the evidence they would ask for.
@@ -104,6 +107,7 @@ service providers to disclose AI use to patients.
 | Not a health-care provider under the Act's disclosure duty | N/A today | Becomes relevant only if used within a provider's care |
 | Route for complaints | Done | Terms §5 names the Texas Attorney General as enforcer and gives our contact |
 | Cure period awareness | Note | The Act gives 60 days to cure after AG notice. Keep the contact channel monitored |
+| Defense for following a recognised risk framework | In progress | We hold the repo to the NIST AI RMF; evidence and gaps in [AI-RISK.md](AI-RISK.md) |
 
 Related Texas law already reflected: the Texas Data Privacy and Security
 Act (rights in Privacy Policy §7; no sale, no targeted advertising, no

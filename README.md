@@ -79,7 +79,9 @@ entry. The contact inbox and EIN, when they exist, go in
 This app holds what people write on their hardest days. That shapes the
 engineering: accounts are real, journals are private to their owner, message
 content stays out of logs, and nothing is retained longer than it needs to be.
-If you contribute, please hold that line.
+If you contribute, please hold that line. How we manage the risks of the
+AI itself is in [AI-RISK.md](AI-RISK.md), organised around the NIST AI Risk
+Management Framework; the legal side is in [COMPLIANCE.md](COMPLIANCE.md).
 
 <div align="center">
 <br>
