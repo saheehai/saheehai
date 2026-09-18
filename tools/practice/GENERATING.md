@@ -3,6 +3,12 @@
 The deck that ships today is ten cards, hand written and in `deck/`. This is
 how to grow it, and roughly what it costs.
 
+**A card is one short question and two answers.** The prompt is capped at 130
+characters and exactly one sentence, and `rules.js` rejects anything that
+stacks a setup in front of the question. Detail that used to open a card goes
+in the option labels or in the explanation, which arrives as a popup after
+the answer and is where the length is allowed to be.
+
 Everything here runs on your machine, by hand. Nothing in CI generates cards,
 no API key lives in the repo or in GitHub, and no card reaches the site
 without you having read it.
@@ -109,6 +115,13 @@ name into `reviewed_by`. `--concept` and `--all` deliberately skip sensitive
 cards; each of those has to be named. `upload.js` refuses to publish a draft,
 so nothing you have not signed off can reach anybody.
 
+Cards normally come from `out/passed`. Drafts already sitting in `deck/`,
+like the hand written starter deck, are approved from where they are, under
+the same rules. `--concept` reads the concept off each card rather than the
+filename, so it works whether a concept has its own file or shares one, and a
+card that already carries a `reviewed_by` is left alone rather than
+restamped with your name.
+
 ```sh
 node upload.js --dry-run     # prints the keys and the invalidation path
 node upload.js               # asks before it writes anything live
@@ -172,6 +185,7 @@ rules live. The browser does its own much smaller check in
 drop a card rather than render half of one. It deliberately does not repeat
 the length caps.
 
-If you widen what a card may contain, widen `prompt.md` and `critic.md` in
-the same commit, or the generator will keep writing to the old shape and the
-critic will keep rejecting the new one.
+If you change what a card may contain, change `prompt.md` and `critic.md` in
+the same commit, in the same direction, or the generator will keep writing to
+the old shape and the critic will keep rejecting the new one. The prompt cap
+went from 420 to 130 on 2026-09-18 and all three moved together.

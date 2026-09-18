@@ -27,8 +27,9 @@
     "guide_label": "the CBT guide",
     "source": "https://beckinstitute.org/about/understanding-cbt/",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "cbt-evidence-both-ways-01",
@@ -58,8 +59,9 @@
     "guide_label": "the CBT guide",
     "source": "https://beckinstitute.org/about/understanding-cbt/",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "dbt-opposite-action-when-01",
@@ -89,8 +91,9 @@
     "guide_label": "the DBT guide",
     "source": "https://behavioraltech.org/resources/faqs/dialectical-behavior-therapy-dbt/",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "dbt-midnight-text-01",
@@ -120,8 +123,9 @@
     "guide_label": "the DBT guide",
     "source": "https://behavioraltech.org/resources/faqs/dialectical-behavior-therapy-dbt/",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "act-defusion-vs-checking-01",
@@ -149,8 +153,9 @@
     "explain": "ACT calls this defusion. The aim is not a more accurate thought. It is a looser hold on the one you have, so it stops deciding what you do next. CBT asks whether the thought is accurate. ACT asks whether you have to do what it says. Both are well evidenced, many therapists use both in the same hour, and which one helps depends more on the person than on the problem.",
     "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "grounding-supermarket-01",
@@ -178,8 +183,9 @@
     "explain": "Grounding does not make a panic attack shorter. It gives you something to do while it passes, which usually makes it easier to sit through. It is worth knowing the limit. Grounding is for getting through one wave. Why the waves keep coming is separate work, and that is the part a therapist is useful for.",
     "source": "https://www.nimh.nih.gov/health/publications/panic-disorder-when-fear-overwhelms",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "avoidance-dentist-relief-01",
@@ -209,8 +215,9 @@
     "guide_label": "the CBT guide",
     "source": "https://www.apa.org/ptsd-guideline/patients-and-families/exposure-therapy",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "boundaries-saturday-move-01",
@@ -238,8 +245,9 @@
     "explain": "You do not have to explain a boundary for it to count, and it does not have to be cold to be firm. What matters is whether you can still stand behind it on the day, when they are tired and the van is right there. A yes you end up resenting usually does more damage than a plain no would have.",
     "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "sleep-half-past-two-01",
@@ -269,8 +277,9 @@
     "guide_label": "the CBT guide",
     "source": "https://www.nhlbi.nih.gov/health/insomnia/treatment",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   },
   {
     "id": "support-dark-thoughts-01",
@@ -300,7 +309,8 @@
     "guide_label": "the talk therapy guide",
     "source": "https://988lifeline.org/help-someone-else/",
     "generated": "2026-09-17",
-    "status": "draft",
-    "reviewed_by": ""
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
   }
 ]
