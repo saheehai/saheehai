@@ -11,14 +11,7 @@ import { usePageMeta } from './hooks/usePageMeta';
 import { usePersistedState } from './hooks/usePersistedState';
 import { useCardGesture } from './hooks/useCardGesture';
 import { STORAGE_KEYS } from './utils/constants';
-import {
-  MAX_HISTORY,
-  drawCard,
-  loadManifest,
-  loadPack,
-  restCard,
-  restIsDue,
-} from './utils/deck';
+import { MAX_HISTORY, drawCard, loadManifest, loadPack } from './utils/deck';
 
 /**
  * Practice: short cards on mental health concepts, two answers, a reason after
@@ -94,11 +87,9 @@ function PracticePage({ onSignOut }) {
   const [phase, setPhase] = useState('front');
   const [history, setHistory] = useState([]);
   const [cursor, setCursor] = useState(0);
-  const [answered, setAnswered] = useState(0);
   const [allowSensitive, setAllowSensitive] = useState(true);
   const [note, setNote] = useState('');
   const [showKeys, setShowKeys] = useState(false);
-  const [sessionMet, setSessionMet] = useState([]);
 
   const stackRef = useRef(null);
   const advanceTimer = useRef(null);
@@ -143,12 +134,19 @@ function PracticePage({ onSignOut }) {
 
   const current = history[cursor] || null;
   const revealed = Boolean(current && (current.chosen || current.shown));
-  const isRest = Boolean(current && current.card.kind === 'rest');
 
-  /** Adds a card to the tape, trimming the far end so history stays bounded. */
+  /**
+   * Adds a card to the tape, dropping the far end so history stays bounded.
+   *
+   * This used to slice from the front, which kept the OLDEST entries and
+   * threw away the newest. Past twenty cards the tape froze: every new card
+   * overwrote the same last slot, the draw saw a window of cards from the
+   * start of the session as "recent", and with a ten card deck that left one
+   * or two eligible. The feed ping-ponged between two cards forever.
+   */
   const push = useCallback((entry) => {
     setHistory((prev) => {
-      const next = [...prev.slice(0, MAX_HISTORY - 1), entry];
+      const next = [...prev.slice(-(MAX_HISTORY - 1)), entry];
       setCursor(next.length - 1);
       return next;
     });
@@ -182,12 +180,8 @@ function PracticePage({ onSignOut }) {
       setCursor(cursor + 1);
       return;
     }
-    if (restIsDue(answered) && !isRest) {
-      push({ card: restCard(answered), chosen: null, shown: false, seenBefore: false });
-      return;
-    }
     drawNext();
-  }, [cursor, history.length, answered, isRest, push, drawNext]);
+  }, [cursor, history.length, drawNext]);
 
   const goBack = useCallback(() => {
     if (cursor > 0) {
@@ -226,7 +220,6 @@ function PracticePage({ onSignOut }) {
         if (comeBack) review = [...review, card.id].slice(-REVIEW_CAP);
         return { ...base, seen, review };
       });
-      setSessionMet((prev) => (prev.includes(card.concept) ? prev : [...prev, card.concept]));
     },
     [setProgress]
   );
@@ -234,17 +227,11 @@ function PracticePage({ onSignOut }) {
   const choose = useCallback(
     (side) => {
       if (!current || revealed) return;
-      if (current.card.kind === 'rest') {
-        if (side === 'left') setPhase('summary');
-        else advance();
-        return;
-      }
       const picked = current.card.options.find((option) => option.side === side);
       const comeBack = Boolean(picked && picked.verdict === 'other');
       setHistory((prev) =>
         prev.map((entry, i) => (i === cursor ? { ...entry, chosen: side } : entry))
       );
-      setAnswered((n) => n + 1);
       record(current.card, { comeBack });
 
       // A right answer keeps moving on its own. Only on a card that has a
@@ -258,16 +245,15 @@ function PracticePage({ onSignOut }) {
         }, ADVANCE_MS);
       }
     },
-    [current, revealed, cursor, advance, record, cancelAdvance, dismissExplain]
+    [current, revealed, cursor, record, cancelAdvance, dismissExplain]
   );
 
   const showMe = useCallback(() => {
-    if (!current || revealed || isRest) return;
+    if (!current || revealed) return;
     setHistory((prev) => prev.map((entry, i) => (i === cursor ? { ...entry, shown: true } : entry)));
-    setAnswered((n) => n + 1);
     // Met, but not got. Shown cards come back around.
     record(current.card, { comeBack: true });
-  }, [current, revealed, isRest, cursor, record]);
+  }, [current, revealed, cursor, record]);
 
   const skip = useCallback(() => {
     // One skip, and no heavy card appears again this session. No dialog and
@@ -321,11 +307,40 @@ function PracticePage({ onSignOut }) {
     onNext: advance,
     onPrevious: goBack,
     canAnswer: Boolean(current) && !revealed,
-    enabled: phase === 'playing',
+    // While the explanation is open it owns the keyboard and the wheel, or
+    // one press would both dismiss it and move the deck, skipping a card.
+    enabled: phase === 'playing' && !revealed && !showKeys,
     reducedMotion: reduced,
   });
 
   useEffect(() => attachWheel(stackRef.current), [attachWheel, phase]);
+
+  /**
+   * WASD and the arrows are bound to the window, not to the card.
+   *
+   * They used to be an onKeyDown on the deck, which meant they only worked
+   * while it held focus. Pressing Start moved focus to a button that then
+   * unmounted, so focus fell to the body and the keys did nothing at all
+   * until somebody happened to click the card. Nothing about answering a
+   * flashcard should depend on which element was last clicked.
+   */
+  // Keys come off the window listener below, so they must not also be bound
+  // to the card: the element handler bubbles to the window and every press
+  // would move two cards.
+  const { onKeyDown, ...pointerBind } = bind;
+  useEffect(() => {
+    if (phase !== 'playing') return undefined;
+    const handler = (event) => {
+      const target = event.target;
+      // Never steal a key from somewhere a person is typing.
+      if (target && target.closest && target.closest('input, textarea, [contenteditable="true"]')) {
+        return;
+      }
+      onKeyDown(event);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [phase, onKeyDown]);
 
   useEffect(() => cancelAdvance, [cancelAdvance]);
 
@@ -434,49 +449,6 @@ function PracticePage({ onSignOut }) {
     );
   }
 
-  if (phase === 'summary') {
-    // By label, not by concept id. Several concepts share a label (three of
-    // them are "CBT"), and a list that reads "CBT, DBT, CBT, DBT, Sleep"
-    // looks like a bug to the person reading it, because it is one.
-    const newConcepts = [
-      ...new Set(
-        sessionMet
-          .map((id) => deck.manifest.concepts.find((c) => c.id === id))
-          .filter(Boolean)
-          .map((c) => c.label)
-      ),
-    ];
-    return shell(
-      <div className="practice-stage practice-stage--centred">
-        <div className="practice-message">
-          <p className="practice-meta__eyebrow">This session</p>
-          <h1 className="practice-message__title">
-            {answered} {answered === 1 ? 'card' : 'cards'}.
-          </h1>
-          {newConcepts.length > 0 && (
-            <p>You met {newConcepts.join(', ')}.</p>
-          )}
-          <div className="practice-message__actions">
-            <Link className="page-heading__action" to="/resources">
-              Read a guide
-            </Link>
-            <Link className="page-heading__action" to="/journal">
-              Write about it
-            </Link>
-            <button type="button" className="practice-start" onClick={() => setPhase('playing')}>
-              Keep going
-            </button>
-          </div>
-          <p className="practice-message__ai">
-            We do not save what you answered. Only which topics you have seen, and that stays
-            in this browser.
-          </p>
-        </div>
-        <PracticeSafetyStrip />
-      </div>
-    );
-  }
-
   return shell(
     <section
       className="practice-stage"
@@ -512,7 +484,7 @@ function PracticePage({ onSignOut }) {
         tabIndex={0}
         role="group"
         aria-label="Practice cards"
-        {...bind}
+        {...pointerBind}
         style={{
           transform: `translate(${drag.dx}px, ${drag.dy}px) rotate(${
             reduced || drag.axis !== 'x' ? 0 : Math.max(-7, Math.min(7, drag.dx * 0.04))
@@ -527,7 +499,6 @@ function PracticePage({ onSignOut }) {
           />
         )}
       </div>
-      <div className="practice-sliver" aria-hidden="true" />
 
       {current && (
         <PracticeOptions
@@ -542,13 +513,12 @@ function PracticePage({ onSignOut }) {
       )}
 
       <div className="practice-third">
-        {!revealed && !isRest && current && current.card.sensitive ? (
+        {!revealed && current && current.card.sensitive ? (
           <button type="button" className="practice-link" onClick={skip}>
             Skip this one
           </button>
         ) : (
-          !revealed &&
-          !isRest && (
+          !revealed && (
             <button type="button" className="practice-link" onClick={showMe}>
               Show me
             </button>
@@ -558,7 +528,7 @@ function PracticePage({ onSignOut }) {
 
       <p className="practice-hint">{touch ? TOUCH_HINT : KEY_HINT}</p>
 
-      {current && revealed && !isRest && (
+      {current && revealed && (
         <PracticeExplain
           card={current.card}
           chosen={current.chosen}
@@ -583,6 +553,7 @@ function KeysSheet({ onClose }) {
         <li>Swipe or click left and right to pick an answer. Or press A and D.</li>
         <li>Swipe up, scroll down, or press S for the next card.</li>
         <li>Swipe down, scroll up, or press W to go back to the card before.</li>
+        <li>The deck never runs out. Once you have seen them all they come round again.</li>
         <li>Show me gives you the explanation without guessing.</li>
         <li>
           The explanation floats over the card. Any move closes it and brings the next card:

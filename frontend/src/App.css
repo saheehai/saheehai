@@ -2684,8 +2684,11 @@ input.sr-only:focus-visible + .account-avatar__pick {
 
 .practice-stage {
     display: grid;
-    /* meta, AI notice, card, sliver, options, third control, hint. */
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+    /* meta, AI notice, card, options, third control, hint. The card row is
+       the only flexible one, and the card inside it sizes to its content
+       rather than filling: a two line question in a tall window used to
+       render a card most of a screen high with nothing in it. */
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
     box-sizing: border-box;
     width: 100%;
     max-width: 560px;
@@ -2755,6 +2758,9 @@ input.sr-only:focus-visible + .account-avatar__pick {
 /* --- the card ------------------------------------------------------------ */
 
 .practice-stack {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     min-height: 0;
     touch-action: none;
     user-select: none;
@@ -2765,19 +2771,28 @@ input.sr-only:focus-visible + .account-avatar__pick {
     transition: none;
 }
 
+/* The deck fills its row so a swipe has somewhere to land, but the card
+   inside it sizes to its content. Ringing the row would draw a focus
+   rectangle round most of an empty screen, so the ring goes on the card. */
 .practice-stack:focus-visible {
+    outline: none;
+}
+
+.practice-stack:focus-visible .practice-card {
     outline: 2px solid var(--brown);
     outline-offset: 4px;
-    border-radius: 16px;
 }
 
 .practice-card {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     gap: 12px;
-    height: 100%;
+    height: auto;
+    max-height: 100%;
     min-height: 0;
+    margin-block: auto;
     padding: 20px;
     background-color: var(--cream);
     border: 2px solid var(--brown-line);
@@ -2821,13 +2836,6 @@ input.sr-only:focus-visible + .account-avatar__pick {
     line-height: 1.35;
     font-weight: 600;
     color: var(--dark-brown);
-}
-
-/* Before an answer the card holds one question and nothing else, so the
-   question sits in the middle of it rather than stranded at the top above a
-   half screen of nothing. The eyebrow stays where it is. */
-.practice-card:not(.is-answered) .practice-card__prompt {
-    margin-block: auto;
 }
 
 /* A card is meant to take about a minute, so some carry a real situation.
@@ -3021,17 +3029,6 @@ input.sr-only:focus-visible + .account-avatar__pick {
 
 .practice-vote__button:hover { border-color: var(--brown); color: var(--brown); }
 .practice-vote__button.is-picked { border-color: var(--brown); color: var(--brown); background-color: var(--light-cream); }
-
-/* --- the sliver of the next card ----------------------------------------- */
-
-.practice-sliver {
-    height: 10px;
-    margin: 0 12px;
-    background-color: var(--light-cream);
-    border: 2px solid var(--brown-line);
-    border-top: none;
-    border-radius: 0 0 16px 16px;
-}
 
 /* --- options ------------------------------------------------------------- */
 
