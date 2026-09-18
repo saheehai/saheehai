@@ -14,7 +14,6 @@
  * is half a card.
  */
 
-const REST_EVERY = 7;
 export const MAX_HISTORY = 20;
 const NO_REPEAT_WITHIN = 20;
 
@@ -75,23 +74,6 @@ export async function loadPack(file) {
   return usable;
 }
 
-/** The pause that arrives every seventh card. Built here, never authored. */
-export function restCard(count) {
-  return {
-    id: `rest-${count}`,
-    kind: 'rest',
-    concept: null,
-    sensitive: false,
-    eyebrow: 'A pause',
-    prompt: `You have done ${count} cards. This is a good place to stop if you want to.`,
-    options: [
-      { side: 'left', label: "That's enough for now", verdict: 'either', note: '' },
-      { side: 'right', label: 'Keep going', verdict: 'either', note: '' },
-    ],
-    explain: '',
-  };
-}
-
 const lastN = (history, n) => history.slice(Math.max(0, history.length - n));
 
 /**
@@ -110,7 +92,11 @@ export function drawCard(pool, { history = [], progress = {}, allowSensitive = t
   // out and the feed dead-ends: every card is "recent", nothing is eligible,
   // and the page sits there saying they come back around when they never do.
   // Ten cards and a window of twenty was exactly that.
-  const noRepeat = Math.min(NO_REPEAT_WITHIN, Math.max(0, pool.length - 1));
+  //
+  // It is kept under the deck size rather than at it, so a small deck still
+  // has several cards to choose between. At pool.length - 1 there is exactly
+  // one, and the deck becomes a fixed rotation in the same order every time.
+  const noRepeat = Math.min(NO_REPEAT_WITHIN, Math.floor(pool.length * 0.6));
   const recent = new Set(lastN(history, noRepeat).map((c) => c.id));
   const lastConcept = history.length ? history[history.length - 1].concept : null;
   const seen = new Set(progress.seen || []);
@@ -152,6 +138,3 @@ export function drawCard(pool, { history = [], progress = {}, allowSensitive = t
   }
   return from[from.length - 1];
 }
-
-/** True when the next thing to show is the pause rather than a card. */
-export const restIsDue = (answeredCount) => answeredCount > 0 && answeredCount % REST_EVERY === 0;
