@@ -11,6 +11,7 @@ import "./App.css";
 import awsService from "./services/awsService";
 import rateLimitService from "./services/rateLimitService";
 import JournalPage from "./JournalPage";
+import PracticePage from "./PracticePage";
 import JournalArchivePage from "./JournalArchivePage";
 import AboutPage from "./components/AboutPage";
 import LegalPage from "./components/LegalPage";
@@ -48,6 +49,8 @@ const PERSONAL_LOCAL_KEYS = [
   STORAGE_KEYS.disclaimerAccepted,
   STORAGE_KEYS.lastActive,
   STORAGE_KEYS.profile,
+  STORAGE_KEYS.practice,
+  STORAGE_KEYS.practiceVotes,
 ];
 
 function ChatPage({ onSignOut }) {
@@ -245,6 +248,16 @@ function ChatPage({ onSignOut }) {
             onSend={handleSend}
             sending={isSending}
           />
+          {/* Chat has no footer, so until this line there was no crisis
+              number anywhere on the page once the first-use disclaimer had
+              been dismissed on a device. That was backwards for the page
+              someone is most likely to need one on. It sits under the input
+              rather than above it so it does not move as the textarea
+              grows. */}
+          <p className="chat-note">
+            Saheeh AI can get things wrong. It is not a therapist. If you need someone now,{' '}
+            <a href="tel:988">call or text 988</a>.
+          </p>
         </div>
       </div>
 
@@ -392,6 +405,14 @@ function App() {
           element={
             <RequireAuth authed={isAuthenticated}>
               <JournalPage onSignOut={handleSignOut} />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/practice"
+          element={
+            <RequireAuth authed={isAuthenticated}>
+              <PracticePage onSignOut={handleSignOut} />
             </RequireAuth>
           }
         />

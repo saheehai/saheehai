@@ -1,0 +1,316 @@
+[
+  {
+    "id": "cbt-which-session-01",
+    "schema": 1,
+    "kind": "concept",
+    "concept": "cbt-basics",
+    "level": 1,
+    "sensitive": false,
+    "eyebrow": "CBT",
+    "prompt": "Two therapists, same bad Tuesday: which one is doing CBT?",
+    "options": [
+      {
+        "side": "left",
+        "label": "The one asking what went through your mind, word for word",
+        "note": "CBT calls this a thought record. The question is about the thought you can still get at, rather than where it came from.",
+        "verdict": "taught"
+      },
+      {
+        "side": "right",
+        "label": "The one tracing the thought back to when it started",
+        "note": "That is psychodynamic work, and it has real evidence behind it. It looks for where a pattern began rather than testing today's thought.",
+        "verdict": "other"
+      }
+    ],
+    "explain": "CBT treats a thought as a claim you can check this week, using evidence you can go and collect. Psychodynamic therapy treats the same thought as a clue about a pattern that started earlier. Neither one is better. They ask different questions and suit different people, and plenty of therapists use both depending on what someone brings in.",
+    "guide": "cbt",
+    "guide_label": "the CBT guide",
+    "source": "https://beckinstitute.org/about/understanding-cbt/",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "cbt-evidence-both-ways-01",
+    "schema": 1,
+    "kind": "situation",
+    "concept": "cognitive-distortions",
+    "level": 2,
+    "sensitive": false,
+    "eyebrow": "CBT",
+    "prompt": "What does CBT ask you to do with a thought like \"nobody actually wants me around\"?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Answer the thought with the truth, that plenty of people want you around",
+        "note": "Arguing with a thought head on usually makes it louder, and it asks someone to believe the opposite on command. CBT never asks for that.",
+        "verdict": "other"
+      },
+      {
+        "side": "right",
+        "label": "Write the thought down and go looking for evidence on both sides",
+        "note": "Who has made plans with you this month. What else might explain two cancellations from one person with a hard job and a small child.",
+        "verdict": "taught"
+      }
+    ],
+    "explain": "One cancelled dinner is a fact. \"Nobody wants me around\" is a rule about a whole life built out of it, and CBT calls that overgeneralising. The move is not to argue with the rule. It is to put it next to the evidence and see how much of it holds up. Usually not all of it does, and what is left is smaller and more specific and easier to do something about.",
+    "guide": "cbt",
+    "guide_label": "the CBT guide",
+    "source": "https://beckinstitute.org/about/understanding-cbt/",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "dbt-opposite-action-when-01",
+    "schema": 1,
+    "kind": "concept",
+    "concept": "opposite-action",
+    "level": 2,
+    "sensitive": false,
+    "eyebrow": "DBT",
+    "prompt": "Where does opposite action apply: dread about an email, or fear on a street where someone was mugged?",
+    "options": [
+      {
+        "side": "left",
+        "label": "The email only. The fear on the street fits the facts and is information",
+        "note": "Opposite action is for emotions that do not match the situation. Fear of a real risk is doing its job, and overriding it would not be a skill.",
+        "verdict": "taught"
+      },
+      {
+        "side": "right",
+        "label": "Both. The whole point is that you act against the feeling either way",
+        "note": "This is the most common way the skill gets misread. Aimed at a fear that fits the facts it stops being coping and becomes a way to talk yourself out of your own judgement.",
+        "verdict": "other"
+      }
+    ],
+    "explain": "Checking the facts comes first, every time. If the emotion fits the situation, you listen to it and solve the problem. If it does not fit, opposite action says go the other way and go all the way: shame says hide, so you make eye contact and stay in the room. Half measures do not do much, because what changes the feeling is what you actually do, not what you meant to do.",
+    "guide": "dbt",
+    "guide_label": "the DBT guide",
+    "source": "https://behavioraltech.org/resources/faqs/dialectical-behavior-therapy-dbt/",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "dbt-midnight-text-01",
+    "schema": 1,
+    "kind": "both",
+    "concept": "interpersonal-effectiveness",
+    "level": 2,
+    "sensitive": false,
+    "eyebrow": "DBT",
+    "prompt": "An upset text at midnight, and work at six: which of these?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Answer now and sleep less",
+        "note": "You are there at the moment it matters to them. It costs you tomorrow, and you will be worse at this the next time it happens.",
+        "verdict": "either"
+      },
+      {
+        "side": "right",
+        "label": "Say tonight that you want to hear it properly, and call at lunch",
+        "note": "\"I want to hear this properly and I am up at six. Can I call you at lunch?\" Keeps your self respect and your day. Costs them a hard night with nobody in it.",
+        "verdict": "either"
+      }
+    ],
+    "explain": "DBT asks you to weigh three things every time you open your mouth: the outcome you want, the relationship, and your own self respect. You can rarely have all three at full strength. The skill is not picking the right one. It is noticing which one you traded away, and being able to say so.",
+    "guide": "dbt",
+    "guide_label": "the DBT guide",
+    "source": "https://behavioraltech.org/resources/faqs/dialectical-behavior-therapy-dbt/",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "act-defusion-vs-checking-01",
+    "schema": 1,
+    "kind": "concept",
+    "concept": "act-basics",
+    "level": 2,
+    "sensitive": false,
+    "eyebrow": "ACT",
+    "prompt": "What would an ACT therapist do with \"I am going to mess this up\"?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Check it against the evidence and land on a more accurate thought",
+        "note": "That is the CBT move and it often works. ACT does not argue with the content of a thought at all, and that is the thing that makes it a different therapy.",
+        "verdict": "other"
+      },
+      {
+        "side": "right",
+        "label": "Hold it at arm's length as a thought, and go and present anyway",
+        "note": "\"I am having the thought that I will mess this up.\" The same words, one step back from them, and the presentation happens either way.",
+        "verdict": "taught"
+      }
+    ],
+    "explain": "ACT calls this defusion. The aim is not a more accurate thought. It is a looser hold on the one you have, so it stops deciding what you do next. CBT asks whether the thought is accurate. ACT asks whether you have to do what it says. Both are well evidenced, many therapists use both in the same hour, and which one helps depends more on the person than on the problem.",
+    "source": "https://www.nimh.nih.gov/health/topics/psychotherapies",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "grounding-supermarket-01",
+    "schema": 1,
+    "kind": "situation",
+    "concept": "grounding",
+    "level": 1,
+    "sensitive": false,
+    "eyebrow": "Grounding",
+    "prompt": "Panic in a supermarket queue: which of these is grounding?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Leave the shop and wait outside until it passes",
+        "note": "It works in the moment and nobody should feel bad for doing it. Over time it teaches your body that the supermarket was the danger, which is how the list of hard places gets longer.",
+        "verdict": "other"
+      },
+      {
+        "side": "right",
+        "label": "Name five things you can see, then four you can hear, slowly",
+        "note": "Counting through the senses in order, out loud if that helps. It is dull on purpose. It gives your attention something to do other than the panic.",
+        "verdict": "taught"
+      }
+    ],
+    "explain": "Grounding does not make a panic attack shorter. It gives you something to do while it passes, which usually makes it easier to sit through. It is worth knowing the limit. Grounding is for getting through one wave. Why the waves keep coming is separate work, and that is the part a therapist is useful for.",
+    "source": "https://www.nimh.nih.gov/health/publications/panic-disorder-when-fear-overwhelms",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "avoidance-dentist-relief-01",
+    "schema": 1,
+    "kind": "concept",
+    "concept": "exposure-and-avoidance",
+    "level": 3,
+    "sensitive": false,
+    "eyebrow": "CBT",
+    "prompt": "A dentist appointment cancelled four times, relief every time: what is that relief doing?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Not much. The fear was probably never really about the dentist",
+        "note": "This gets said a lot and it does not hold up. A fear does not need a hidden meaning to keep growing. It only needs to keep being fed.",
+        "verdict": "other"
+      },
+      {
+        "side": "right",
+        "label": "Teaching the brain that cancelling is what kept the bad thing away",
+        "note": "Nothing bad happened, so the escape gets the credit. That is what makes the next cancellation easier than the last.",
+        "verdict": "taught"
+      }
+    ],
+    "explain": "This is negative reinforcement, and it works fast. Every time you back out, the dread is proved right and gets a little easier to listen to. It is also why therapy for anxiety almost always ends up asking you to do the thing, in small pieces, in an order you choose and at a pace you set. Not because the fear is silly, and not to prove anything. It is because the fear only changes when you find out for yourself that it was wrong.",
+    "guide": "cbt",
+    "guide_label": "the CBT guide",
+    "source": "https://www.apa.org/ptsd-guideline/patients-and-families/exposure-therapy",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "boundaries-saturday-move-01",
+    "schema": 1,
+    "kind": "both",
+    "concept": "boundaries",
+    "level": 1,
+    "sensitive": false,
+    "eyebrow": "Boundaries",
+    "prompt": "A friend asks for help moving on a Saturday you do not have, so which answer?",
+    "options": [
+      {
+        "side": "left",
+        "label": "\"I can't this time,\" and nothing after it",
+        "note": "Complete on its own, with nothing left to negotiate with. Some people read a bare no as cold, and that reading is part of what it costs you.",
+        "verdict": "either"
+      },
+      {
+        "side": "right",
+        "label": "\"Not Saturday, but I could bring the van round on Sunday\"",
+        "note": "Keeps the door open and gives them something real to plan around. Costs you the Sunday, and makes the next ask a little more likely.",
+        "verdict": "either"
+      }
+    ],
+    "explain": "You do not have to explain a boundary for it to count, and it does not have to be cold to be firm. What matters is whether you can still stand behind it on the day, when they are tired and the van is right there. A yes you end up resenting usually does more damage than a plain no would have.",
+    "source": "https://www.nimh.nih.gov/health/topics/caring-for-your-mental-health",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "sleep-half-past-two-01",
+    "schema": 1,
+    "kind": "situation",
+    "concept": "sleep",
+    "level": 2,
+    "sensitive": false,
+    "eyebrow": "Sleep",
+    "prompt": "Awake since eleven and it is half past two: what does CBT for insomnia say to do?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Stay in bed. Getting up only makes it harder to drop off later",
+        "note": "The obvious move, and the one almost everybody makes. It is also how a bed turns into the place where you lie awake.",
+        "verdict": "other"
+      },
+      {
+        "side": "right",
+        "label": "Get up, do something dull in low light, go back when sleepy",
+        "note": "Out of the bedroom if the place allows it. Nothing bright, nothing with a screen, nothing interesting enough that you want to finish it.",
+        "verdict": "taught"
+      }
+    ],
+    "explain": "This is called stimulus control, and it is one of the best evidenced parts of CBT for insomnia. The aim is to keep the bed meaning sleep and very little else, which means not lying in it awake for hours. It feels completely backwards for the first few nights and usually takes a couple of weeks to show. It pairs with the harder half: getting up at the same time anyway, including after a bad night.",
+    "guide": "cbt",
+    "guide_label": "the CBT guide",
+    "source": "https://www.nhlbi.nih.gov/health/insomnia/treatment",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  },
+  {
+    "id": "support-dark-thoughts-01",
+    "schema": 1,
+    "kind": "support",
+    "concept": "supporting-someone",
+    "level": 1,
+    "sensitive": true,
+    "eyebrow": "Being there",
+    "prompt": "A friend says they have been having dark thoughts lately, so what now?",
+    "options": [
+      {
+        "side": "left",
+        "label": "Ask them plainly what they mean by that",
+        "note": "Asking directly does not plant the idea. The research points the other way. Most people describe being asked as a relief, because it means they are not the one who has to raise it.",
+        "verdict": "either"
+      },
+      {
+        "side": "right",
+        "label": "Tell them you are glad they told you, and stay where you are",
+        "note": "In the first minute you mostly just need to not leave and not change the subject. The details can come once they know you can hear it.",
+        "verdict": "either"
+      }
+    ],
+    "explain": "Both of these say the thing that matters, which is that you can hear it. They are close to the same thing and it does not much matter which comes first. Some practical points: you are not expected to fix it, you should not promise to keep it secret if someone is in danger, and you are allowed to bring in someone with training. If either of you needs to talk to somebody tonight, 988 takes calls and texts at any hour.",
+    "guide": "talk-therapy",
+    "guide_label": "the talk therapy guide",
+    "source": "https://988lifeline.org/help-someone-else/",
+    "generated": "2026-09-17",
+    "status": "published",
+    "reviewed_by": "Rehan Ali",
+    "reviewed": "2026-09-18"
+  }
+]

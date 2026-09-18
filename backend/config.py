@@ -58,6 +58,9 @@ JOURNAL_TABLE = os.environ.get("JOURNAL_TABLE", "saheeh_journal")
 QUOTA_TABLE = os.environ.get("QUOTA_TABLE", "saheeh_quota")
 # One item per account: nickname and a small picture, shown only to its owner.
 PROFILE_TABLE = os.environ.get("PROFILE_TABLE", "saheeh_profiles")
+# One item per CARD, not per person: how many people marked a Practice card
+# useful and how many marked it wrong. Nobody's identity is written to it.
+PRACTICE_FEEDBACK_TABLE = os.environ.get("PRACTICE_FEEDBACK_TABLE", "saheeh_practice_feedback")
 # Keys-only index on the chat table (hash user_id, range timestamp) so one
 # person's conversations can be found without scanning everyone's. The chat
 # table is not managed by the stack, so the index is created by hand
@@ -109,6 +112,12 @@ MAX_AVATAR_BYTES = int(os.environ.get("MAX_AVATAR_BYTES", 96 * 1024))
 # Export and delete read a person's whole history. A handful a day is plenty
 # for anyone doing it by hand, and stops a script turning them into a cost.
 ACCOUNT_ACTION_QUOTA = int(os.environ.get("ACCOUNT_ACTION_QUOTA", 5))
+
+# Practice votes are cheap and a person may play a lot of cards in one go, so
+# this sits between the chat allowance and the account one. It is the only
+# thing stopping one account skewing a card's counts, since the vote itself
+# is stored without an identity and cannot be deduplicated.
+PRACTICE_VOTE_QUOTA = int(os.environ.get("PRACTICE_VOTE_QUOTA", 60))
 # Lambda cannot return more than 6 MB. Above this the export is handed off to
 # the operator workflow instead of failing opaquely.
 MAX_EXPORT_BYTES = int(os.environ.get("MAX_EXPORT_BYTES", 5 * 1024 * 1024))

@@ -12,7 +12,7 @@
     "react-scripts": "5.0.1"
   },
   "scripts": {
-    "prestart": "node scripts/build-content.js",
+    "prestart": "node scripts/build-content.js && node ../tools/practice/upload.js --local",
     "start": "react-scripts start",
     "prebuild": "node scripts/build-content.js",
     "build": "react-scripts build",

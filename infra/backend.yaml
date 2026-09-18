@@ -293,6 +293,7 @@ Resources:
           JOURNAL_TABLE: !Ref JournalTableName
           QUOTA_TABLE: !Ref QuotaTable
           PROFILE_TABLE: !Ref ProfileTable
+          PRACTICE_FEEDBACK_TABLE: !Ref PracticeFeedbackTable
           DAILY_MESSAGE_QUOTA: !Ref DailyMessageQuota
           ORIGIN_VERIFY_SECRET: !Ref OriginVerifySecret
           GEO_BLOCK_UNKNOWN: !Ref GeoBlockUnknown
@@ -306,6 +307,14 @@ Resources:
         JournalList:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /journal, Method: GET }
+        # Practice. The cards are static files on the CDN; these two are the
+        # geo gate and the thumbs on a card.
+        PracticeGate:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /practice, Method: GET }
+        PracticeVote:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /practice, Method: POST }
         # The Account page: nickname and picture, and the self-service side
         # of the Privacy Policy's export and delete promises.
         ProfileGet:
@@ -334,6 +343,12 @@ Resources:
         ApiJournalList:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /api/journal, Method: GET }
+        ApiPracticeGate:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/practice, Method: GET }
+        ApiPracticeVote:
+          Type: HttpApi
+          Properties: { ApiId: !Ref Api, Path: /api/practice, Method: POST }
         ApiProfileGet:
           Type: HttpApi
           Properties: { ApiId: !Ref Api, Path: /api/profile, Method: GET }
@@ -379,6 +394,7 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ChatTableName}'
                 - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${JournalTableName}'
                 - !GetAtt QuotaTable.Arn
+                - !GetAtt PracticeFeedbackTable.Arn
                 - !GetAtt ProfileTable.Arn
             - Sid: FindOwnConversations
               Effect: Allow
@@ -553,6 +569,29 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
+  # How Practice cards are landing. One row per CARD and none per person:
+  # the key is the card id, the attributes are two counts, and no identity is
+  # written at any point. That is deliberate. A table keyed by user would
+  # record which cards somebody disliked, which is a record of what they were
+  # reading about on a bad day, and there is no reason to hold it. It also
+  # means there is nothing in here to include in a data export or to delete
+  # when an account goes: none of it belongs to anybody.
+  #
+  # Not retained on delete, unlike the tables that hold people's own things.
+  # These are counts about our content and they can be rebuilt by asking
+  # again.
+  PracticeFeedbackTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-practice-feedback'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: card_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: card_id
+          KeyType: HASH
+
   # Newsletter addresses. Keyed by address so a repeat sign-up is an update,
   # with an index on the emailed token so confirm and unsubscribe links can
   # be resolved without a scan. Unsubscribing sets expires_at 30 days out
@@ -622,3 +661,7 @@ Outputs:
 
   ProfileTableName:
     Value: !Ref ProfileTable
+
+  PracticeFeedbackTableName:
+    Description: Card tallies for Practice. Counts per card, no identities.
+    Value: !Ref PracticeFeedbackTable

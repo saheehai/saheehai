@@ -34,7 +34,37 @@ people to real help. It is not therapy, not a diagnostic tool, and not a
 crisis service. It is labelled beta and secondary to the site.
 
 The journal at `/journal` stores what people write; no model reads it. The
-rest of the site is static. So everything below is about the companion.
+rest of the site is static.
+
+There is a **second AI system in the building**, and it is different in kind:
+the Practice card deck at `/practice`. No model runs when anybody plays. The
+cards are static files written ahead of time by Claude Sonnet
+(`tools/practice/`), checked by a deterministic rule set and a second model
+pass, and read by a person before publication. The risk is not a model saying
+something in the moment; it is a wrong sentence, written once, sitting in
+front of thousands of people and being believed. Its controls are:
+
+- `tools/practice/rules.js` refuses cards that ask the player about
+  themselves, score their coping, read as a screening item or diagnosis, name
+  a method or means, mention self-harm outside a `support` card, name a
+  medication, cast the player as a clinician, or imply the cards replace
+  care. Those failures are never offered a rewrite.
+- A critic pass gives each card back to the model with the guide it claims to
+  teach from, and drops any claim the guide does not support.
+- Nothing publishes at `status: draft`. A person sets `reviewed_by`, and
+  sensitive cards cannot be approved in a batch.
+- The page says the cards were written with AI and can be wrong, and every
+  card carries a thumbs up and down. The tally is per card and holds no
+  identity, which is the post-launch signal that a card is landing badly.
+- The same 988 row and safety line as everywhere else, inside a viewport that
+  does not scroll, so it is never below the fold.
+
+Gaps, stated plainly: the rule set catches shape and forbidden content, not
+subtle falsehood; the critic is the same model family that wrote the card;
+and "read by a person" is one person, not a clinician. The clinical review in
+the practices below should cover the deck as well as the prompt.
+
+Everything else below is about the companion.
 
 ## The seven characteristics of trustworthy AI
 
@@ -145,6 +175,14 @@ an owner. Dates are targets, not promises.
 
 ## Model and prompt change log
 
+- **2026-09-17.** Practice added at `/practice`, a third Experiment. Two
+  changes reach the companion: `system_prompt.txt` now lists Practice among
+  the site's surfaces (without it, the prompt forbids the companion from
+  mentioning a page the person can see in the menu), and the card deck
+  becomes the second AI-derived system on the site, described in the scope
+  section above. No change to the model id, the crisis protocol, or what the
+  companion is given about a person. The behaviour test set is still not in
+  place, so this prompt change ships unmeasured like the two before it.
 - **2026-09-18.** Two changes. The person can now let the companion read
   their five most recent journal entries, off unless switched on in Account;
   when on, the entries are added as a further system block, fenced between

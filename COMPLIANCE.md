@@ -17,10 +17,13 @@ codebase. What follows is the evidence they would ask for.
   `/team`, `/legal`) is static, informational, needs no account, sets no
   cookies, and runs no analytics or tracking. Its one form is the newsletter
   sign-up, which stores an email address only after the owner confirms it.
-- The **Experiments** (`/chat`, `/journal`) are beta features behind an
-  account. The chat is an AI wellness companion. It is not therapy and is
-  never described as therapy. It is secondary to the site, and is labelled
-  "(beta)" in the menu and in the notice before first use.
+- The **Experiments** (`/chat`, `/journal`, `/practice`) are beta features
+  behind an account. The chat is an AI wellness companion. It is not therapy
+  and is never described as therapy. It is secondary to the site, and is
+  labelled "(beta)" in the menu and in the notice before first use. Practice
+  is a set of flashcards on ideas from therapy: the cards are static public
+  files served from the CDN, no model runs when anyone plays, and what a
+  person answers is never recorded anywhere.
 
 Everything below that concerns personal or health data is about the
 Experiments; the site collects nothing beyond a confirmed newsletter address.
@@ -38,7 +41,9 @@ Experiments; the site collects nothing beyond a confirmed newsletter address.
 | Newsletter address, token, sign-up page, timestamps | DynamoDB `saheehai-backend-subscribers` | Until unsubscribe, then 30 days (TTL) | Double opt-in via SES; no IP, no name. Turnstile on the form |
 | Function logs | CloudWatch | 30 days | Ids and errors only; no message or entry text |
 | API access logs | CloudWatch | 30 days | Who, what, when, from where, status. No bodies |
-| Browser local storage | The person's device | Until sign-out | Session tokens, current chat, draft, last-active time |
+| Browser local storage | The person's device | Until sign-out | Session tokens, current chat, draft, last-active time, Practice progress (concepts met and cards marked to come back to) |
+| Practice card tallies: two counts per card | DynamoDB `saheehai-backend-practice-feedback` | Life of the card | Keyed by `card_id`, never by person. No `user_id`, no timestamp per vote, nothing written that identifies anybody, so it cannot appear in an export or a deletion. The token authorises the call; a per-identity quota is the only thing stopping one account skewing a card |
+| Practice answers | Nowhere | n/a | Which option somebody picked is never sent anywhere and never stored, on the device or off it. There is no score |
 
 Third parties: AWS (everything, including SES for the newsletter),
 Cloudflare (Turnstile at account sign-up and on the newsletter form only).

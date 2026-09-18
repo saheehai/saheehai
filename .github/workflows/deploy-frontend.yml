@@ -81,6 +81,11 @@ jobs:
         # Uploaded BEFORE any HTML so the new HTML never references an
         # asset that has not landed yet. Everything that is not hashed is
         # excluded here and uploaded below with a short cache.
+        #
+        # practice-cards/ is excluded because it is not built here at all:
+        # tools/practice/upload.js publishes the deck straight to the bucket
+        # so cards can change without a deploy. Drop that exclude and
+        # --delete wipes every card the moment anyone ships frontend code.
         working-directory: frontend
         run: |
           aws s3 sync build/ "s3://${{ vars.S3_BUCKET }}" \
@@ -90,6 +95,7 @@ jobs:
             --exclude "__pages/*" \
             --exclude "news/*" \
             --exclude "resources/*" \
+            --exclude "practice-cards/*" \
             --exclude "sitemap.xml" \
             --exclude "robots.txt" \
             --exclude "*.map"

@@ -2,7 +2,8 @@
 
 Short notes for anyone (or any assistant) changing this repo. The longer
 records are README.md (layout), DEPLOYMENT.md (pipeline and AWS),
-COMPLIANCE.md (laws and promises) and AI-RISK.md (the companion).
+COMPLIANCE.md (laws and promises), AI-RISK.md (the companion) and
+PRE-DEPLOY.md (the checks before shipping, and the open gaps).
 
 ## What we are building, and for whom
 
@@ -16,8 +17,10 @@ Three things follow from that and shape every decision:
 
 - **The site is the product; the companion is secondary.** Chat and journal
   are "Experiments", labelled beta, never framed as therapy. A crisis line
-  (988) is on every page, and the companion is told to send people to
-  humans.
+  (988) is on every page except the Practice play surface, where it would
+  cost a fifth of a phone screen on every card; there it sits on the front
+  card, on the summary, and inside any card marked sensitive. The companion
+  is told to send people to humans.
 - **Privacy is the point.** Accounts are real, journals are private to
   their owner, logs hold no message text, nothing trains a model, and
   anyone can download or delete their data from the Account page. Do not
@@ -112,6 +115,55 @@ Still open, roughly in priority order:
    The home page promises guides that do not exist yet.
 6. `/legal` would benefit from a plain-language summary above the text.
    The italic closing line on the home page is unattributed.
+
+## Practice (the card game)
+
+A third Experiment at `/practice`: flashcards on mental health concepts, two
+answers each, an explanation after every one. Swipe, click, scroll, arrows or
+WASD. The visible next and previous buttons came off on 2026-09-18 in favour
+of one quiet line of hint text that names the gestures for whatever is in the
+person's hand; the keyboard keeps every action, so nothing is gesture-only.
+A right answer moves to the next card on its own after about a second, and
+any input cancels that, so staying to read is always possible. There is
+no score anywhere in it, and there is not going to be one: a percentage would
+be a made up number about somebody's mental health shown to a person who may
+be having a bad week. Streaks, XP and accuracy are refused for the same
+reason, and `frontend/src/PracticePage.js` says so at the top.
+
+- **A card is one short question and two answers.** The prompt is capped at
+  130 characters and exactly one sentence, enforced by `rules.js`. It was 420
+  until 2026-09-18, which put a six line question and its own scrollbar on a
+  phone. Detail belongs in the option labels or the explanation.
+- **The explanation is a small popup, not part of the card.**
+  `PracticeExplain` floats over the card after an answer, capped at 46dvh so
+  the question and both options stay visible behind it. Closing is what
+  moves to the next card, so there is one way forward, and everything that
+  moves the deck also closes it: swipe, wheel, WASD, the arrows, Escape, the
+  backdrop, or the button. A wheel inside it scrolls the text first and only
+  dismisses once there is no more to read.
+- **The cards are data, not code.** `tools/practice/rules.js` is the contract
+  and the only place the length caps and content rules live.
+  `frontend/src/utils/deck.js` does a smaller structural check in the browser
+  and deliberately does not repeat the caps. See `tools/practice/GENERATING.md`
+  to write more.
+- **`practice-cards/` in the site bucket is not part of a build.**
+  `tools/practice/upload.js` writes it so cards can change without a deploy.
+  Both deploy paths carry `--exclude "practice-cards/*"`; without it,
+  `aws s3 sync --delete` wipes the whole deck on the next frontend deploy.
+- **A card is `draft` until a person sets `reviewed_by`**, the same as a
+  guide. `upload.js` refuses to publish drafts, and sensitive cards cannot be
+  approved in a batch.
+- **About a third of the deck has no right answer** (`kind: "both"`). Below
+  that the deck teaches that therapy has right answers, which is false.
+- **A vote holds no identity.** The feedback table is keyed by `card_id` and
+  never by `user_id`, which is why card feedback is absent from the export
+  and delete paths.
+- The surface never scrolls, so scroll can mean "next card". Chat and
+  Practice are the two pages without `SiteFooter`. The card itself is the
+  only thing that scrolls, and only when a prompt or an explanation does not
+  fit: before 2026-09-18 it was `overflow: hidden` with no flex basis, so a
+  long question was cut mid-line and an answered card rendered its
+  explanation at zero height.
 
 ## Rules that are easy to break
 

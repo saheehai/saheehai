@@ -23,8 +23,9 @@ behind CloudFront.
 
 ```
 frontend/   React app (Create React App)
-backend/    Python Lambda — chat and journal API
+backend/    Python Lambda — chat, journal and Practice API
 infra/      CloudFormation and SAM templates
+tools/      Written and run by hand: the Practice card deck and its generator
 ```
 
 ## Working on it

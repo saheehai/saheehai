@@ -72,3 +72,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Practice cards: written by tools/practice/upload.js --local, published
+# to S3 separately. Never part of a frontend deploy.
+frontend/public/practice-cards/
+
+# Practice generator: installed packages and generated cards.
+tools/practice/node_modules/
+tools/practice/out/

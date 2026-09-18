@@ -120,4 +120,8 @@ export const STORAGE_KEYS = {
   lastActive: 'saheehAI_lastActive',
   idleSignedOut: 'saheehAI_idleSignedOut',
   profile: 'saheehAI_profile',
+  // Practice keeps what someone has met and what they marked, in this
+  // browser and nowhere else. Cleared on sign out with the rest.
+  practice: 'saheehAI_practice',
+  practiceVotes: 'saheehAI_practiceVotes',
 };
