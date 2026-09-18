@@ -22,6 +22,7 @@ import account
 import auth
 import config
 import geo
+import practice
 import storage
 from responses import clean_text, error, headers, parse_body, respond
 
@@ -241,6 +242,11 @@ _EXPERIMENT_ROUTES = {
     ("POST", "/chat"): handle_chat,
     ("POST", "/journal"): handle_journal_save,
     ("GET", "/journal"): handle_journal_list,
+    # Practice is static content on the CDN, but it sits under Experiments
+    # and the Terms say the Experiments are not offered in the blocked
+    # states, so the gate answers the same way chat does.
+    ("GET", "/practice"): practice.handle_practice_get,
+    ("POST", "/practice"): practice.handle_practice_vote,
 }
 
 # The Account page. Not geo-restricted: a person in a blocked state must

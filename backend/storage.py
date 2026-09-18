@@ -14,9 +14,12 @@ _chat_table = _dynamodb.Table(config.CHAT_TABLE)
 _journal_table = _dynamodb.Table(config.JOURNAL_TABLE)
 _quota_table = _dynamodb.Table(config.QUOTA_TABLE)
 _profile_table = _dynamodb.Table(config.PROFILE_TABLE)
+_practice_table = _dynamodb.Table(config.PRACTICE_FEEDBACK_TABLE)
 
 # Second quota key family, for export and delete (see consume_account_quota).
 ACCOUNT_QUOTA_SUFFIX = "account"
+# Third, for Practice votes (see consume_practice_quota).
+PRACTICE_QUOTA_SUFFIX = "practice"
 
 
 class QuotaExceeded(Exception):
@@ -66,6 +69,22 @@ def consume_account_quota(identity: str) -> dict:
         window,
         config.ACCOUNT_ACTION_QUOTA,
         "You have reached today's limit for this. Please try again tomorrow.",
+    )
+
+
+def consume_practice_quota(identity: str) -> dict:
+    """One unit of the Practice vote allowance.
+
+    Its own family, because a vote is nothing like a chat message and nothing
+    like an export: cheap, frequent, and the only guard on a count that is
+    stored without an identity to deduplicate against.
+    """
+    window = int(time.time()) // config.QUOTA_WINDOW_SECONDS
+    return _claim(
+        f"{identity}#{PRACTICE_QUOTA_SUFFIX}#{window}",
+        window,
+        config.PRACTICE_VOTE_QUOTA,
+        "That is enough card feedback for today. Thank you, it does get read.",
     )
 
 
@@ -282,3 +301,22 @@ def tables() -> dict:
         "quota": _quota_table,
         "profiles": _profile_table,
     }
+
+
+# --- Practice ---------------------------------------------------------------
+
+
+def record_card_vote(card_id: str, vote: str) -> None:
+    """Adds one to a card's tally.
+
+    Deliberately keyed by card and nothing else. There is no user_id column
+    and no timestamp per vote, so the row can say "nine people found this one
+    wrong" and can never say who. That is what keeps card feedback out of the
+    export and delete paths: there is nothing in here that belongs to anybody.
+    """
+    _practice_table.update_item(
+        Key={"card_id": card_id},
+        UpdateExpression="ADD #tally :one",
+        ExpressionAttributeNames={"#tally": "up" if vote == "up" else "down"},
+        ExpressionAttributeValues={":one": 1},
+    )
