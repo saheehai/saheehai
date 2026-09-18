@@ -1,5 +1,8 @@
 # Saheeh AI — Development & Deployment
 
+> Before you ship, walk PRE-DEPLOY.md. It is the list of what the site
+> promises and how to check each promise is still true.
+
 GitHub is the source of truth. Merging to `main` deploys; nothing is deployed from a laptop in the normal course of work.
 
 ## Architecture
@@ -358,7 +361,7 @@ step that echoes an input.
 - CloudWatch access and function logs: IP address, account id, route and
   time, never message text. They expire on their own within 30 days.
 - Point-in-time-recovery backups of the newsletter table, and of chat and
-  journal if you turned it on: 35 days.
+journal if you turned it on: 35 days.
 - The encrypted export artifact: 7 days.
 - SES bounce and complaint suppression entries, and whatever Cloudflare
   Turnstile keeps under its own policy.
