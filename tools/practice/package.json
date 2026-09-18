@@ -1,0 +1,14 @@
+{
+  "name": "saheehai-practice-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Writes, checks and publishes the Practice card deck. Run by hand, never in CI.",
+  "scripts": {
+    "generate": "node generate.js",
+    "review": "node review.js",
+    "publish": "node upload.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0"
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "_comment": [
+    "What Practice teaches, and how much of it. One entry per concept.",
+    "",
+    "`guide` is the slug of a guide in resources/, or null when no guide",
+    "exists yet. A card with no guide renders without the 'more in the",
+    "guide' link, so the null entries below double as the content backlog",
+    "for resources/: write the guide, fill in the slug, and every card on",
+    "that concept gains a link with no regeneration.",
+    "",
+    "`brief` is handed to the model as the scope of the concept. Keep it",
+    "narrow. A vague brief is how a concept ends up with forty cards that",
+    "are all the same card.",
+    "",
+    "`target` sums to 1000. `mix` and `levels` apply to every concept",
+    "unless the concept overrides them."
+  ],
+
+  "schema": 1,
+  "deck_version": "1",
+
+  "mix": { "concept": 0.35, "situation": 0.35, "both": 0.3 },
+  "levels": { "1": 0.4, "2": 0.4, "3": 0.2 },
+
+  "concepts": [
+    {
+      "id": "cbt-basics",
+      "label": "CBT",
+      "guide": "cbt",
+      "target": 40,
+      "brief": "What CBT is and how it works: thoughts shape feelings shape actions, the session is a working meeting with an agenda, the change happens in the homework between sessions. What CBT is first choice for. How it differs from mindfulness and from insight-led therapy."
+    },
+    {
+      "id": "cognitive-distortions",
+      "label": "CBT",
+      "guide": "cbt",
+      "target": 50,
+      "brief": "The named patterns: overgeneralising, all-or-nothing thinking, catastrophising, mind reading, fortune telling, discounting the positive, should statements, personalising, emotional reasoning, labelling. Naming one from an example, and what the pattern costs."
+    },
+    {
+      "id": "thought-records",
+      "label": "CBT",
+      "guide": "cbt",
+      "target": 35,
+      "brief": "The mechanics of a thought record: the situation, the automatic thought word for word, how much you believed it, evidence for and against, another reading, what you did and what you would do next time. Why writing it down beats doing it in your head."
+    },
+    {
+      "id": "behavioural-activation",
+      "label": "CBT",
+      "guide": "cbt",
+      "target": 35,
+      "brief": "Acting before the motivation arrives. Why low mood shrinks the list of things you do and how that feeds the mood. Scheduling small specific things, activity as evidence gathering rather than as a reward."
+    },
+    {
+      "id": "exposure-and-avoidance",
+      "label": "CBT",
+      "guide": "cbt",
+      "target": 40,
+      "brief": "How avoidance is reinforced by relief, why safety behaviours keep fear intact, graded exposure in an order the person chooses, why the fear only updates on evidence collected first hand. Never framed as pushing through, always as choosing the step."
+    },
+
+    {
+      "id": "dbt-basics",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 35,
+      "brief": "What DBT is: skills training plus therapy, built for emotions that arrive fast and land hard. The four modules. Who it was built for and who it helps now. Why it is taught as skills you practice rather than insight you reach."
+    },
+    {
+      "id": "distress-tolerance",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 45,
+      "brief": "Getting through a bad hour without making it worse. TIPP, cold water, paced breathing, distraction on purpose, radical acceptance. Explicitly short term: these are for the hour, not the problem."
+    },
+    {
+      "id": "emotion-regulation",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 45,
+      "brief": "Naming an emotion, checking whether it fits the facts, looking after the body that carries it, building a life that produces fewer emergencies. Emotions as information rather than as instructions."
+    },
+    {
+      "id": "interpersonal-effectiveness",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 45,
+      "brief": "Asking for something, saying no, and keeping the relationship and your self respect while you do it. DEAR MAN, GIVE, FAST. The three way trade between the outcome, the relationship and self respect, and knowing which one you just traded."
+    },
+    {
+      "id": "mindfulness-skills",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 35,
+      "brief": "Attention as something you can aim. Observe, describe, participate. One thing at a time. Noticing without grading what you notice. Mindfulness as the floor the other DBT modules stand on, not as relaxation."
+    },
+    {
+      "id": "opposite-action",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 30,
+      "brief": "Acting against an emotion that does not fit the facts, all the way rather than halfway. When not to use it: an emotion that fits the facts is information you listen to. Worked through shame, unearned guilt, fear of ordinary things, and low mood."
+    },
+    {
+      "id": "dialectics",
+      "label": "DBT",
+      "guide": "dbt",
+      "target": 30,
+      "brief": "Two true things at once. Acceptance and change together, not in sequence. You are doing your best and you need to do better. Why the word dialectical is in the name and what it changes about how the skills are taught."
+    },
+
+    {
+      "id": "psychodynamic-basics",
+      "label": "Psychodynamic",
+      "guide": "psychodynamic-therapy",
+      "target": 25,
+      "brief": "Where a pattern started and why it repeats. Insight led, longer timeline, less homework. What the work looks like week to week. Who it suits and who it does not."
+    },
+    {
+      "id": "patterns-and-origins",
+      "label": "Psychodynamic",
+      "guide": "psychodynamic-therapy",
+      "target": 25,
+      "brief": "Recognising a repeating pattern across different relationships. Old strategies that once worked and now cost. Curiosity about a pattern rather than blame for it."
+    },
+    {
+      "id": "transference",
+      "label": "Psychodynamic",
+      "guide": "psychodynamic-therapy",
+      "target": 20,
+      "brief": "Old feelings landing on a present person, including on the therapist, and why that is treated as material rather than as a mistake. Kept plain and free of jargon."
+    },
+
+    {
+      "id": "what-therapy-is",
+      "label": "Talk therapy",
+      "guide": "talk-therapy",
+      "target": 30,
+      "brief": "What talk therapy is and is not. What a first session covers. That it is work rather than advice. Common first impressions and which of them are accurate."
+    },
+    {
+      "id": "therapeutic-alliance",
+      "label": "Talk therapy",
+      "guide": "talk-therapy",
+      "target": 25,
+      "brief": "The relationship as the best predictor of whether therapy helps. Saying when something a therapist said missed. Changing therapist without it being a failure. What a good fit actually feels like."
+    },
+    {
+      "id": "what-a-session-is-like",
+      "label": "Talk therapy",
+      "guide": "talk-therapy",
+      "target": 25,
+      "brief": "The practical shape: how long, how often, what silence is for, what to do when you have nothing to say, what between sessions is for, what ending looks like."
+    },
+    {
+      "id": "supporting-someone",
+      "label": "Being there",
+      "guide": "talk-therapy",
+      "target": 35,
+      "kinds": { "support": 0.6, "both": 0.4 },
+      "sensitive_ratio": 0.5,
+      "brief": "How to be there for another person. Listening without fixing, asking directly and plainly, staying, what not to say, looking after yourself while you do it, and knowing when to bring in a professional or a crisis line. No card casts the player as a clinician. Every card here has no single right answer."
+    },
+
+    {
+      "id": "kinds-of-clinician",
+      "label": "Finding care",
+      "guide": "what-kind-of-help-do-i-need",
+      "target": 30,
+      "brief": "Who does what: counselor, therapist, psychologist, psychiatrist, social worker. Who can prescribe, who diagnoses, what the training is, what each typically costs. Never which one the player needs."
+    },
+    {
+      "id": "where-to-start",
+      "label": "Finding care",
+      "guide": "what-kind-of-help-do-i-need",
+      "target": 25,
+      "brief": "Practical first moves: sliding scale, community mental health, training clinics, employee programmes, what to ask on a first call, what a waiting list means. Facts a person can act on."
+    },
+
+    {
+      "id": "act-basics",
+      "label": "ACT",
+      "guide": null,
+      "target": 35,
+      "brief": "Acceptance and commitment therapy. Room for the feeling, movement toward what matters. How it differs from CBT: it does not argue with the content of a thought. Psychological flexibility in plain words."
+    },
+    {
+      "id": "values-and-action",
+      "label": "ACT",
+      "guide": null,
+      "target": 30,
+      "brief": "Values as directions rather than goals. The difference between a value and a rule. Small committed actions. Why a value cannot be achieved or failed, only moved toward or away from."
+    },
+    {
+      "id": "defusion",
+      "label": "ACT",
+      "guide": null,
+      "target": 25,
+      "brief": "Holding a thought at arm's length instead of arguing with it. Naming it as a thought. Why a looser grip beats a truer thought when the thought is deciding what you do next."
+    },
+    {
+      "id": "grounding",
+      "label": "Grounding",
+      "guide": null,
+      "target": 40,
+      "brief": "Giving attention somewhere concrete while adrenaline burns off. Counting through the senses, temperature, orienting to the room, feet on the floor. That it does not shorten panic, it gives you something to do that is not fighting it."
+    },
+    {
+      "id": "panic-and-breathing",
+      "label": "Panic",
+      "guide": null,
+      "target": 35,
+      "brief": "What a panic attack is doing physically and why it peaks and falls. Slow out breath, why breathing faster makes it worse. That panic is not dangerous in itself, and why fearing the panic is what keeps it coming."
+    },
+    {
+      "id": "sleep",
+      "label": "Sleep",
+      "guide": null,
+      "target": 35,
+      "brief": "CBT for insomnia in plain terms: stimulus control, keeping the bed meaning sleep, a consistent wake time, why lying awake trying harder backfires, light and screens, worry time earlier in the evening."
+    },
+    {
+      "id": "boundaries",
+      "label": "Boundaries",
+      "guide": null,
+      "target": 40,
+      "kinds": { "concept": 0.25, "situation": 0.25, "both": 0.5 },
+      "brief": "A limit you can actually hold to. Saying no plainly, with or without a reason. What a boundary is not: a punishment, an ultimatum, or something the other person has to agree with. Mostly cards with no single right answer, because the cost sits in different places for different people."
+    },
+    {
+      "id": "self-compassion",
+      "label": "Self-compassion",
+      "guide": null,
+      "target": 30,
+      "brief": "Speaking to yourself the way you would to someone you like. Common humanity rather than self esteem. Why it is not lowering the bar, and the evidence that it raises follow through rather than lowering it."
+    },
+    {
+      "id": "motivational-interviewing",
+      "label": "Change talk",
+      "guide": null,
+      "target": 25,
+      "brief": "Why arguing for change makes a person argue back. Ambivalence as normal rather than as resistance. Rolling with it, asking what matters, letting the reasons come from the person. Useful to anyone who has ever wanted someone to change."
+    }
+  ]
+}
