@@ -4,6 +4,7 @@ import {
   BookOpen,
   FlaskConical,
   Info,
+  Layers,
   LifeBuoy,
   LogIn,
   LogOut,
@@ -28,8 +29,9 @@ import { useProfile } from '../context/ProfileContext';
  * the crisis lines and the news live under Resources. The account menu, on
  * the far right behind the person's picture, holds the Account page and
  * Sign out: one deliberate tap to leave, rather than the last of a row of
- * small icons. The footer still puts 988 on every page, so a crisis line is
- * one tap away without the menu.
+ * small icons. A crisis line is always one tap away without opening the
+ * menu: the footer carries 988 on every page that has a footer, and the two
+ * that do not (chat and Practice) carry their own line instead.
  */
 
 // Everything under Experiments is beta, and says so: the companion is a
@@ -37,6 +39,7 @@ import { useProfile } from '../context/ProfileContext';
 const EXPERIMENTS = [
   { label: 'Chat', tag: 'beta', to: '/chat', Icon: MessageCircle },
   { label: 'Journal', tag: 'beta', to: '/journal', Icon: NotebookPen },
+  { label: 'Practice', tag: 'beta', to: '/practice', Icon: Layers },
 ];
 
 // "Get help" first: it is the one someone may need in a hurry.
@@ -90,7 +93,7 @@ function SiteNav({ signedIn, onSignOut }) {
               label="Experiments"
               Icon={FlaskConical}
               items={EXPERIMENTS}
-              active={at('/chat') || at('/journal')}
+              active={at('/chat') || at('/journal') || at('/practice')}
             />
             <NavMenu
               label="Resources"

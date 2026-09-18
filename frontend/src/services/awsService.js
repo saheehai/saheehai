@@ -36,6 +36,10 @@ class AWSService {
     return `${this.baseEndpoint}/account`;
   }
 
+  get practiceEndpoint() {
+    return `${this.baseEndpoint}/practice`;
+  }
+
   /**
    * Authenticated request.
    *
@@ -129,6 +133,31 @@ class AWSService {
   // --- Account -------------------------------------------------------------
 
   /** Nickname and picture, or an empty object. */
+  /**
+   * Asks whether this person may play Practice.
+   *
+   * Practice sits under Experiments, which the Terms do not offer in a few
+   * states, and the server is the only thing that knows where a request came
+   * from. A 451 comes back as err.status and the page shows the refusal.
+   */
+  async practiceGate() {
+    return this._request(this.practiceEndpoint);
+  }
+
+  /**
+   * A thumb on a card.
+   *
+   * The card id is the whole payload. There is no user id here and the
+   * server does not store one: the tally says how a card is landing, never
+   * who said so.
+   */
+  async votePracticeCard(cardId, vote) {
+    return this._request(this.practiceEndpoint, {
+      method: 'POST',
+      body: JSON.stringify({ card_id: cardId, vote }),
+    });
+  }
+
   async getProfile() {
     const data = await this._request(this.profileEndpoint);
     return data.profile || {};

@@ -68,7 +68,11 @@ try {
     `aws s3 sync "${buildDir}" "s3://${BUCKET}" --delete ` +
       '--cache-control "public,max-age=31536000,immutable" ' +
       '--exclude "index.html" --exclude "__pages/*" --exclude "news/*" ' +
-      '--exclude "resources/*" --exclude "sitemap.xml" --exclude "robots.txt" --exclude "*.map"'
+      // practice-cards/ is published by tools/practice/upload.js and is not
+      // part of a build. Without this exclude, --delete wipes the whole deck
+      // on every frontend deploy.
+      '--exclude "resources/*" --exclude "practice-cards/*" ' +
+      '--exclude "sitemap.xml" --exclude "robots.txt" --exclude "*.map"'
   );
 
   console.log('\n📤 Uploading news, resources, sitemap and robots...');

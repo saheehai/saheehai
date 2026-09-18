@@ -485,6 +485,23 @@ textarea:focus-visible {
     pointer-events: none;
 }
 
+/* Under the chat box: the AI is fallible, it is not a therapist, and here is
+   a person to call. Small, always there, never in the way of typing. */
+.chat-note {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--medium-brown);
+}
+
+.chat-note a {
+    color: var(--brown);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .chat-input-bar {
     display: flex;
     align-items: flex-end;
@@ -1534,6 +1551,22 @@ textarea::-webkit-scrollbar-thumb:hover {
     .chat-send-stack,
     .chat-send-layer,
     .about-card {
+        transition: none !important;
+    }
+
+    /* Practice. The drag still tracks the finger, because direct
+       manipulation is not decoration, but the card no longer tilts and
+       nothing springs back. useCardGesture does the matching half. */
+    .practice-card__feedback,
+    .practice-keys {
+        animation: none !important;
+    }
+
+    .practice-stack,
+    .practice-option,
+    .practice-nav,
+    .practice-start,
+    .practice-vote__button {
         transition: none !important;
     }
 }
@@ -2630,4 +2663,613 @@ input.sr-only:focus-visible + .account-avatar__pick {
     .account-btn {
         margin-left: 6px;
     }
+}
+
+/* ==========================================================================
+   Practice
+   Short cards on ideas from therapy, under Experiments.
+
+   The whole surface is one fixed, non-scrolling viewport. That is what lets
+   a scroll gesture mean "next card" without fighting the page, and it is
+   what keeps the 988 row on screen without anyone scrolling to find it.
+   Everything below the card is a fixed row: a card growing must never move
+   the options out from under a thumb.
+   ========================================================================== */
+
+.practice {
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+.practice-stage {
+    display: grid;
+    /* meta, AI notice, card, sliver, options, third control, hint. */
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto auto;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 560px;
+    height: calc(100dvh - var(--header-h));
+    margin: var(--header-h) auto 0;
+    padding: 0 16px;
+    overflow: hidden;
+}
+
+/* Centred with auto margins rather than justify-content: a flex box that
+   centres overflowing content clips it at BOTH ends, and on a short screen
+   that took the top off the front card with no way to reach it. */
+.practice-stage--centred {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 20px;
+    overflow-y: auto;
+}
+
+.practice-stage--centred > .practice-message {
+    margin-block: auto;
+    flex: 0 0 auto;
+}
+
+/* --- meta row ------------------------------------------------------------ */
+
+.practice-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 36px;
+}
+
+.practice-meta__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brown);
+}
+
+.practice-meta__count {
+    margin: 0;
+    font-size: 13px;
+    text-align: right;
+    color: var(--medium-brown);
+}
+
+.practice-chip {
+    padding: 2px 7px;
+    border: 1px solid var(--brown-line);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+    color: var(--medium-brown);
+}
+
+/* --- the card ------------------------------------------------------------ */
+
+.practice-stack {
+    min-height: 0;
+    touch-action: none;
+    user-select: none;
+    transition: transform 0.18s var(--ease-out);
+}
+
+.practice-stack.is-dragging {
+    transition: none;
+}
+
+.practice-stack:focus-visible {
+    outline: 2px solid var(--brown);
+    outline-offset: 4px;
+    border-radius: 16px;
+}
+
+.practice-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+    min-height: 0;
+    padding: 20px;
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.practice-card__eyebrow {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brown);
+}
+
+.practice-card__flag {
+    padding: 2px 8px;
+    background-color: var(--light-cream);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: var(--medium-brown);
+}
+
+/* The prompt may shrink but never gets sliced. `.practice-card` is
+   overflow:hidden, so without a flex basis of its own a long question was
+   cut mid-line with nothing to say so, and after an answer it took the whole
+   card and left the explanation at zero height. */
+.practice-card__prompt {
+    flex: 0 1 auto;
+    min-height: 0;
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.35;
+    font-weight: 600;
+    color: var(--dark-brown);
+}
+
+/* Before an answer the card holds one question and nothing else, so the
+   question sits in the middle of it rather than stranded at the top above a
+   half screen of nothing. The eyebrow stays where it is. */
+.practice-card:not(.is-answered) .practice-card__prompt {
+    margin-block: auto;
+}
+
+/* A card is meant to take about a minute, so some carry a real situation.
+   Longer prompts get smaller type rather than a taller card. */
+.practice-card__prompt.is-medium { font-size: 17px; line-height: 1.4; }
+.practice-card__prompt.is-long { font-size: 16px; line-height: 1.45; }
+
+/* The question stays put behind the sheet. It is context while the answer is
+   open, not something to reread. */
+.practice-card.is-answered .practice-card__prompt {
+    color: var(--medium-brown);
+}
+
+/* --- feedback ------------------------------------------------------------ */
+
+/* --- the explanation popup ----------------------------------------------- */
+
+/* A note floating over the card, not a sheet the screen has to make room
+   for. It is deliberately small: the answer is read in a few seconds and
+   then dismissed by whatever the person is already using to move. */
+.practice-explain {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+/* A button rather than a div so closing by tapping away is reachable from a
+   keyboard and named to a screen reader. */
+.practice-explain__backdrop {
+    position: absolute;
+    inset: 0;
+    padding: 0;
+    background-color: rgba(93, 78, 55, 0.28);
+    border: none;
+    cursor: pointer;
+    animation: practiceFade 0.14s var(--ease-out) both;
+}
+
+.practice-explain__panel {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    width: min(400px, 100%);
+    max-height: min(46dvh, 380px);
+    padding: 14px 16px;
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(107, 68, 35, 0.22);
+    animation: practiceRise 0.16s var(--ease-out) both;
+    touch-action: pan-y;
+}
+
+.practice-explain__panel:focus-visible {
+    outline: 2px solid var(--brown);
+    outline-offset: -4px;
+}
+
+.practice-explain__body {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.practice-explain__footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--brown-line);
+}
+
+.practice-explain__next {
+    min-height: 36px;
+    padding: 8px 18px;
+    background-color: var(--brown);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cream);
+    cursor: pointer;
+    transition: background-color 0.15s var(--ease-out);
+}
+
+.practice-explain__next:hover { background-color: var(--brown-dark); }
+
+/* Pushes the thumbs to the far edge, away from Next. */
+.practice-explain__footer .practice-vote { margin-left: auto; }
+
+/* Inside the popup everything is a notch smaller: this is a note, not a
+   page. */
+.practice-explain .practice-verdict { margin-bottom: 8px; font-size: 15px; }
+.practice-explain .practice-card__explain { margin-bottom: 10px; font-size: 14px; line-height: 1.55; }
+.practice-explain .practice-notes { margin-bottom: 10px; gap: 6px; }
+.practice-explain .practice-notes__item { font-size: 13px; line-height: 1.5; }
+.practice-explain .practice-card__guide { font-size: 13px; }
+.practice-explain .practice-vote__button { width: 28px; height: 28px; }
+
+@keyframes practiceFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes practiceRise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.practice-verdict {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-brown);
+}
+
+.practice-verdict.is-good { color: #2F855A; }
+.practice-verdict.is-other { color: #D2691E; }
+
+.practice-card__explain {
+    margin: 0 0 12px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--dark-brown);
+}
+
+/* Both options get a note, including the one nobody picked. That note is
+   what makes this teach rather than test. */
+.practice-notes {
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 8px;
+}
+
+.practice-notes__item {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--medium-brown);
+}
+
+.practice-notes__item strong {
+    font-weight: 600;
+    color: var(--dark-brown);
+}
+
+.practice-card__call {
+    margin: 0 0 12px;
+}
+
+.practice-card__guide {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brown);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.practice-vote {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.practice-vote__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 8px;
+    color: var(--medium-brown);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.practice-vote__button:hover { border-color: var(--brown); color: var(--brown); }
+.practice-vote__button.is-picked { border-color: var(--brown); color: var(--brown); background-color: var(--light-cream); }
+
+/* --- the sliver of the next card ----------------------------------------- */
+
+.practice-sliver {
+    height: 10px;
+    margin: 0 12px;
+    background-color: var(--light-cream);
+    border: 2px solid var(--brown-line);
+    border-top: none;
+    border-radius: 0 0 16px 16px;
+}
+
+/* --- options ------------------------------------------------------------- */
+
+.practice-options {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.practice-option {
+    position: relative;
+    box-sizing: border-box;
+    flex: 1 1 0;
+    min-height: 96px;
+    padding: 14px 16px;
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 12px;
+    font-size: 16px;
+    line-height: 1.35;
+    font-weight: 500;
+    text-align: left;
+    color: var(--dark-brown);
+    cursor: pointer;
+    transition: background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out),
+        color 0.15s var(--ease-out);
+}
+
+/* Two stages, and the second one is a preview of the pressed state, so
+   letting go of a drag is never a surprise. The option not being aimed at is
+   never dimmed: dimming would say it is wrong, and often it is not. */
+.practice-option.is-aiming {
+    border-color: var(--brown);
+    background-color: var(--light-cream);
+}
+
+.practice-option.is-committing,
+.practice-option.is-chosen {
+    background-color: var(--brown);
+    border-color: var(--brown);
+    color: var(--cream);
+}
+
+.practice-option.is-taught {
+    border-color: #2F855A;
+}
+
+.practice-option:disabled { cursor: default; }
+
+.practice-option__key {
+    display: none;
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    padding: 1px 6px;
+    background-color: var(--light-cream);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--medium-brown);
+}
+
+.practice-option__label { display: block; }
+
+/* --- the quiet third control, the fallback buttons, the legend ------------ */
+
+.practice-third {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+}
+
+.practice-link {
+    padding: 4px 6px;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--medium-brown);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+.practice-link:hover { color: var(--brown); }
+
+/* The one line left saying how to move, now that the buttons are gone. Quiet
+   on purpose: it is for the first minute, and it should stop being noticed
+   after that. */
+.practice-hint {
+    margin: 8px 0 0;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--medium-brown);
+    opacity: 0.55;
+}
+
+/* Sits under the meta row, above the card. */
+.practice-ai {
+    margin: 0 0 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--medium-brown);
+    opacity: 0.75;
+}
+
+/* --- safety strip -------------------------------------------------------- */
+
+.practice-safety {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--brown-line);
+}
+
+.practice-safety__line {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--medium-brown);
+}
+
+.practice-safety__call { flex: 1 1 auto; }
+
+/* --- front card, summary, errors ----------------------------------------- */
+
+.practice-message {
+    width: 100%;
+    max-width: 480px;
+    padding: 24px;
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-radius: 16px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--dark-brown);
+}
+
+.practice-message p { margin: 0 0 12px; }
+.practice-message p:last-child { margin-bottom: 0; }
+
+.practice-message__title {
+    margin: 6px 0 12px;
+    font-size: 32px;
+    line-height: 1.15;
+    font-weight: 600;
+    color: var(--brown);
+}
+
+
+.practice-message__safety {
+    padding: 12px 14px;
+    background-color: var(--light-cream);
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.practice-message__ai,
+.practice-message__hint {
+    font-size: 13px;
+    color: var(--medium-brown);
+}
+
+.practice-message__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 16px 0 12px;
+}
+
+.practice-start {
+    min-height: 44px;
+    padding: 11px 20px;
+    background-color: var(--brown);
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cream);
+    cursor: pointer;
+    transition: background-color 0.15s var(--ease-out);
+}
+
+.practice-start:hover { background-color: var(--brown-dark); }
+
+.practice-keys {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    z-index: 40;
+    box-sizing: border-box;
+    width: min(520px, 100%);
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+    background-color: var(--cream);
+    border: 2px solid var(--brown-line);
+    border-bottom: none;
+    border-radius: 16px 16px 0 0;
+    transform: translateX(-50%);
+    box-shadow: 0 -6px 24px rgba(107, 68, 35, 0.14);
+    animation: practiceRise 0.16s var(--ease-out) both;
+}
+
+.practice-keys ul {
+    margin: 0 0 14px;
+    padding-left: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--dark-brown);
+}
+
+.practice-keys li { margin-bottom: 6px; }
+
+/* --- desktop ------------------------------------------------------------- */
+
+@media (min-width: 720px) {
+    .practice-stage { padding: 12px 20px 0; }
+    .practice-card { padding: 32px; gap: 14px; }
+    .practice-card__prompt { font-size: 22px; }
+    .practice-card__prompt.is-medium { font-size: 20px; }
+    .practice-card__prompt.is-long { font-size: 18px; }
+    .practice-option { min-height: 92px; padding: 16px 18px; }
+    .practice-option__key { display: block; }
+    .practice-safety { flex-direction: row; align-items: center; gap: 16px; }
+    .practice-safety__call { flex: 0 0 auto; }
+}
+
+/* A short screen loses the roomier spacing first, never a control. The AI
+   notice is not spacing and does not go: it is the label on the thing. */
+@media (max-height: 620px) {
+    .practice-card { padding: 16px; gap: 10px; }
+    .practice-option { min-height: 76px; }
+    .practice-third { min-height: 32px; }
+    .practice-hint { display: none; }
 }
