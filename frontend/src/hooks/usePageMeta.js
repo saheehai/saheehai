@@ -9,6 +9,11 @@ import { ORG_NAME, SITE_URL } from '../content/site';
  * themselves are declared once in public/index.html; this only fills them
  * in. The prerender step (scripts/prerender.js) writes the same values into
  * static HTML for crawlers that do not run JavaScript.
+ *
+ * `noindex` is the exception: there is no robots tag in index.html, because
+ * every page the prerender writes is one we want indexed. The only caller is
+ * the not-found page, so the tag is added on mount and taken away again on
+ * unmount rather than living in the document and being toggled.
  */
 
 const set = (selector, attr, value) => {
@@ -16,7 +21,7 @@ const set = (selector, attr, value) => {
   if (el) el.setAttribute(attr, value);
 };
 
-export function usePageMeta({ title, description, path }) {
+export function usePageMeta({ title, description, path, noindex = false }) {
   useEffect(() => {
     const full = title ? `${title} · ${ORG_NAME}` : ORG_NAME;
     const url = `${SITE_URL}${path || window.location.pathname}`;
@@ -30,6 +35,15 @@ export function usePageMeta({ title, description, path }) {
     set('meta[property="og:url"]', 'content', url);
     set('link[rel="canonical"]', 'href', url);
   }, [title, description, path]);
+
+  useEffect(() => {
+    if (!noindex) return undefined;
+    const tag = document.createElement('meta');
+    tag.setAttribute('name', 'robots');
+    tag.setAttribute('content', 'noindex');
+    document.head.appendChild(tag);
+    return () => tag.remove();
+  }, [noindex]);
 }
 
 export default usePageMeta;

@@ -5,6 +5,7 @@ import Alert from './Alert';
 import FormInput from './FormInput';
 import ChatBackdrop from './ChatBackdrop';
 import * as cognito from '../services/cognitoService';
+import { usePageMeta } from '../hooks/usePageMeta';
 import { STORAGE_KEYS } from '../utils/constants';
 
 /**
@@ -81,6 +82,15 @@ export default function AuthPage({ onAuthenticated }) {
   });
 
   const copy = MODES[mode];
+
+  // The door had no name: every one of these five states inherited whichever
+  // <title> the last page set, so a tab parked on sign-in read "News" or
+  // "Resources". The heading is already the right words, so use it.
+  usePageMeta({
+    title: copy.title,
+    description: 'Sign in to Saheeh AI for the private journal and the Experiments. The guides do not need an account.',
+    path: '/signin',
+  });
 
   const go = useCallback((next, message = null) => {
     setMode(next);

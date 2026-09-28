@@ -30,6 +30,7 @@ import TypingIndicator from "./components/TypingIndicator";
 import ChatInputBar from "./components/ChatInputBar";
 import AuthPage from "./components/AuthPage";
 import AccountPage from "./components/AccountPage";
+import NotFoundPage from "./components/NotFoundPage";
 import { ProfileProvider } from "./context/ProfileContext";
 import * as cognito from "./services/cognitoService";
 import { usePersistedState } from "./hooks/usePersistedState";
@@ -433,7 +434,13 @@ function App() {
           }
         />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Not a redirect to "/": an unknown address used to be silently
+            rewritten to the front page, which told a person nothing and gave
+            crawlers the front page under any URL they liked. */}
+        <Route
+          path="*"
+          element={<NotFoundPage signedIn={isAuthenticated} onSignOut={handleSignOut} />}
+        />
       </Routes>
       </ProfileProvider>
     </Router>

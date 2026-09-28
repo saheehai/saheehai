@@ -98,22 +98,22 @@ Done since: `/signin` has a close control and Escape (its backdrop was
 already `inert`, so that half of the finding was stale); the crisis
 numbers on `/help` and in the footer are full-width rows at least 44 px
 tall; assistant bubbles carry the standard 2 px outline instead of
-sitting at about 1.16:1 against the page.
+sitting at about 1.16:1 against the page; an unknown path lands on
+`NotFoundPage` rather than being rewritten to `/`, which also gives the site
+its first link to `/signin`, and `/signin` sets its own title.
 
 Still open, roughly in priority order:
 
 1. The chat greeting "Ask me anything!" is generic-chatbot voice. Name the
    limits inside the chat shell, with a visible beta chip.
-2. No 404 page: unknown paths silently rewrite to `/`. No `href="/signin"`
-   anywhere, so sign-in is not linkable; its title is bare.
-3. Naming drift: "Chat" on the home page, "the companion" in prose,
+2. Naming drift: "Chat" on the home page, "the companion" in prose,
    "Experiments" in the nav, footer and Terms. Pick one.
-4. Radius ladder has five values and the auth card and menu panel use 1 px
+3. Radius ladder has five values and the auth card and menu panel use 1 px
    borders where cards use 2 px. Wrap the header nav in `<nav>`; make
    navigating buttons links; add a skip link.
-5. A guide is publicly labelled DRAFT on `/resources`; hide or explain it.
+4. A guide is publicly labelled DRAFT on `/resources`; hide or explain it.
    The home page promises guides that do not exist yet.
-6. `/legal` would benefit from a plain-language summary above the text.
+5. `/legal` would benefit from a plain-language summary above the text.
    The italic closing line on the home page is unattributed.
 
 ## Practice (the card game)
