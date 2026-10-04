@@ -82,7 +82,12 @@ SITE_URL = os.environ.get("SITE_URL", "https://saheeh.ai").rstrip("/")
 
 # --- Model -----------------------------------------------------------------
 
-MODEL_ID = os.environ.get("MODEL_ID", "openai.gpt-oss-120b-1:0")
+# The `global.` prefix is a cross-region inference profile, not a region of
+# its own: Bedrock places the call wherever there is capacity. It is the
+# cheaper of the two Anthropic price tables (about 10% under the in-region
+# one) and the reason the IAM policy in infra/backend.yaml has to name both
+# the profile and the underlying model across regions.
+MODEL_ID = os.environ.get("MODEL_ID", "global.anthropic.claude-haiku-4-5-20251001-v1:0")
 MAX_OUTPUT_TOKENS = int(os.environ.get("MAX_OUTPUT_TOKENS", 1000))
 TEMPERATURE = float(os.environ.get("TEMPERATURE", 0.7))
 

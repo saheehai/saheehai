@@ -376,11 +376,17 @@ Resources:
         # user itself, with the person's own session, after the rows are gone.
         - Version: '2012-10-17'
           Statement:
+            # Two ARNs for one model. The call names the global inference
+            # profile, and Bedrock then invokes the underlying model in
+            # whichever region has capacity, so the foundation-model ARN is
+            # wildcarded over regions. Both are still one model: nothing here
+            # permits a second one.
             - Sid: InvokeOneModel
               Effect: Allow
               Action: bedrock:InvokeModel
               Resource:
-                - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}::foundation-model/openai.gpt-oss-120b-1:0'
+                - !Sub 'arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/global.anthropic.claude-haiku-4-5-20251001-v1:0'
+                - !Sub 'arn:${AWS::Partition}:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0'
             - Sid: ReadWriteOwnTables
               Effect: Allow
               Action:
