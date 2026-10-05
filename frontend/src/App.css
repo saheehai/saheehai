@@ -1564,6 +1564,7 @@ textarea::-webkit-scrollbar-thumb:hover {
 
     .practice-stack,
     .practice-option,
+    .practice-option__arrow,
     .practice-nav,
     .practice-start,
     .practice-vote__button {
@@ -2684,11 +2685,13 @@ input.sr-only:focus-visible + .account-avatar__pick {
 
 .practice-stage {
     display: grid;
-    /* meta, AI notice, card, options, third control, hint. The card row is
-       the only flexible one, and the card inside it sizes to its content
-       rather than filling: a two line question in a tall window used to
-       render a card most of a screen high with nothing in it. */
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+    /* meta, AI notice, the play group, the third control, the hint. Only the
+       play group flexes. The card and the two options live inside it as one
+       block, so the spare height on a tall window sits above and below the
+       pair rather than opening up between them: the options used to strand
+       themselves at the bottom of the screen, a long way from the question
+       they belonged to. */
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
     box-sizing: border-box;
     width: 100%;
     max-width: 560px;
@@ -2757,30 +2760,44 @@ input.sr-only:focus-visible + .account-avatar__pick {
 
 /* --- the card ------------------------------------------------------------ */
 
-.practice-stack {
+/* The card and its two answers, as one group, centred in whatever height is
+   left. The group is also the input surface: it owns the pointer, the wheel,
+   the focus and touch-action, so a swipe can start anywhere in the empty
+   space around the card and still land, and so the surface does not vanish
+   on a short card or on the state that has no card at all. */
+.practice-play {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    gap: 12px;
     min-height: 0;
     touch-action: none;
     user-select: none;
+}
+
+/* Ringing the group would draw a focus rectangle round most of an empty
+   screen, so the ring goes on the card. */
+.practice-play:focus-visible {
+    outline: none;
+}
+
+.practice-play:focus-visible .practice-card {
+    outline: 2px solid var(--brown);
+    outline-offset: 4px;
+}
+
+/* Only the card moves under a finger. The options stay where the thumb last
+   saw them: they are what the card is being thrown at, and the aiming state
+   is a preview of that target, so the target must not travel. */
+.practice-stack {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     transition: transform 0.18s var(--ease-out);
 }
 
 .practice-stack.is-dragging {
     transition: none;
-}
-
-/* The deck fills its row so a swipe has somewhere to land, but the card
-   inside it sizes to its content. Ringing the row would draw a focus
-   rectangle round most of an empty screen, so the ring goes on the card. */
-.practice-stack:focus-visible {
-    outline: none;
-}
-
-.practice-stack:focus-visible .practice-card {
-    outline: 2px solid var(--brown);
-    outline-offset: 4px;
 }
 
 .practice-card {
@@ -2792,7 +2809,6 @@ input.sr-only:focus-visible + .account-avatar__pick {
     height: auto;
     max-height: 100%;
     min-height: 0;
-    margin-block: auto;
     padding: 20px;
     background-color: var(--cream);
     border: 2px solid var(--brown-line);
@@ -3032,15 +3048,20 @@ input.sr-only:focus-visible + .account-avatar__pick {
 
 /* --- options ------------------------------------------------------------- */
 
+/* Pinned inside the group. A card that grows gives up its own height; it
+   never pushes the options out from under a thumb. */
 .practice-options {
     display: flex;
+    flex: 0 0 auto;
     gap: 12px;
-    margin-top: 12px;
 }
 
 .practice-option {
     position: relative;
     box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     flex: 1 1 0;
     min-height: 96px;
     padding: 14px 16px;
@@ -3078,20 +3099,24 @@ input.sr-only:focus-visible + .account-avatar__pick {
 
 .practice-option:disabled { cursor: default; }
 
-.practice-option__key {
+/* The arrow points the way the card goes, so it sits on the outer edge of
+   each option: far left on the left answer, far right on the right one. */
+.practice-option--right { flex-direction: row-reverse; }
+
+.practice-option__arrow {
     display: none;
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    padding: 1px 6px;
-    background-color: var(--light-cream);
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: 600;
+    flex: 0 0 auto;
     color: var(--medium-brown);
+    transition: color 0.15s var(--ease-out);
 }
 
-.practice-option__label { display: block; }
+/* The quiet brown would all but vanish on the brown fill. */
+.practice-option.is-committing .practice-option__arrow,
+.practice-option.is-chosen .practice-option__arrow {
+    color: var(--cream);
+}
+
+.practice-option__label { display: block; flex: 1 1 auto; }
 
 /* --- the quiet third control, the fallback buttons, the legend ------------ */
 
@@ -3257,7 +3282,7 @@ input.sr-only:focus-visible + .account-avatar__pick {
     .practice-card__prompt.is-medium { font-size: 20px; }
     .practice-card__prompt.is-long { font-size: 18px; }
     .practice-option { min-height: 92px; padding: 16px 18px; }
-    .practice-option__key { display: block; }
+    .practice-option__arrow { display: flex; }
     .practice-safety { flex-direction: row; align-items: center; gap: 16px; }
     .practice-safety__call { flex: 0 0 auto; }
 }
@@ -3265,6 +3290,7 @@ input.sr-only:focus-visible + .account-avatar__pick {
 /* A short screen loses the roomier spacing first, never a control. The AI
    notice is not spacing and does not go: it is the label on the thing. */
 @media (max-height: 620px) {
+    .practice-play { gap: 8px; }
     .practice-card { padding: 16px; gap: 10px; }
     .practice-option { min-height: 76px; }
     .practice-third { min-height: 32px; }
