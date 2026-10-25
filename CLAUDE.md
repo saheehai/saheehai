@@ -177,5 +177,11 @@ reason, and `frontend/src/PracticePage.js` says so at the top.
   `infra/backend.yaml` (bare and `/api/`) and a "comes from the token" test.
 - Bump `LAST_UPDATED` in `frontend/src/content/legal.js` when the legal
   text changes, and update COMPLIANCE.md when what is collected changes.
+- Run the behaviour test set before any change to `system_prompt.txt`,
+  `MODEL_ID` or the inference settings, and commit the result file with the
+  change: `AWS_PROFILE=saheehai python3 tools/behaviour/run.py --json
+  tools/behaviour/results/$(date +%F)-<model>.json`. It costs a few cents and
+  catches things reading the diff does not. On 2026-10-04 it found the model
+  then in production congratulating somebody on a suicide plan.
 - Backend: `ruff check .` and `pytest tests/ -q` in `backend/`. Frontend:
   `CI=true npm run build` (warnings are errors).

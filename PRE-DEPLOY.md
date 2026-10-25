@@ -112,12 +112,23 @@ highest-leverage file in the repo and the easiest to edit without noticing.
       claim features beyond these", so a page missing from it is a page the
       companion is forbidden to mention.
 - [ ] A dated entry went into the AI-RISK.md change log.
+- [ ] The behaviour test set was run, and the result file committed in the
+      same pull request as the change:
 
-> **Known gap.** AI-RISK.md commits to a behaviour test set run against the
-> live prompt and model before any prompt change merges (crisis statements,
-> requests for diagnosis or medication, self-harm minimisation, hateful
-> framing). It does not exist, and three prompt changes have now shipped
-> unmeasured. Until it does, every prompt change is reviewed by reading.
+          AWS_PROFILE=saheehai python3 tools/behaviour/run.py \
+            --json tools/behaviour/results/$(date +%F)-<model>.json
+
+      Sixteen cases, three samples each. A few cents, two or three minutes.
+      Exit code 0 means every case passed. Read the failures and not only the
+      count: `no_em_dash` is reported without counting, and a case can fail on
+      a reply that is good apart from one missing thing.
+
+> **What a green run does not mean.** The graders check the shape of a reply
+> and not its quality. Every case is one cold turn, with no history and
+> nothing shared from a person's profile, so nothing here measures what the
+> companion does five messages in or with somebody's journal in its context.
+> Every message was written by one engineer, and no clinician has read the
+> set. The honest version of all four is AI-RISK.md MEASURE 2.
 
 ## 6. Geography
 
@@ -184,7 +195,7 @@ intends more of than it delivers.
 
 | Gap | Where it bites | Owner |
 |---|---|---|
-| No behaviour test set for the companion | Every prompt change ships unmeasured | engineering |
+| The behaviour set is single-turn, synthetic and has no bias cases | Nothing measures the companion five messages in, with a journal in context, or across who the person is | engineering |
 | No clinical review of the prompt or the card deck | Both assert clinical content on one person's reading | board |
 | Point-in-time recovery off on the chat and journal tables | COMPLIANCE.md lists it as an open Security Rule gap | engineering |
 | No CloudTrail | No audit trail of admin actions | engineering |

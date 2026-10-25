@@ -74,8 +74,8 @@ privacy-enhanced, and fair with harmful bias managed. What each means here:
 
 | Characteristic | What we do | Where | Gap |
 |---|---|---|---|
-| Valid and reliable | The companion is scoped to a task a general model does reliably: supportive conversation with a fixed crisis protocol. It is told it can be wrong and to say so. | `backend/system_prompt.txt` (scope, "Transparency", crisis format) | No systematic evaluation of prompt behaviour over time. See MEASURE. |
-| Safe | Crisis-resources protocol in the prompt, 988 in every page footer and in the notice before first use, geographic refusal where AI therapy is restricted, a daily message cap, no medical or medication advice by design. | prompt "Critical safety protocols"; `frontend/src/components/SiteFooter.js`, `DisclaimerModal.js`; `backend/geo.py`; `backend/storage.py` quota | Safety behaviour is asserted by the prompt, not measured against a test set. |
+| Valid and reliable | The companion is scoped to a task a general model does reliably: supportive conversation with a fixed crisis protocol. It is told it can be wrong and to say so. | `backend/system_prompt.txt` (scope, "Transparency", crisis format) | Evaluated against a fixed case set on every prompt or model change since 2026-10-05, with the result committed. Sixteen cases is a floor and not a survey. See MEASURE 2. |
+| Safe | Crisis-resources protocol in the prompt, 988 in every page footer and in the notice before first use, geographic refusal where AI therapy is restricted, a daily message cap, no medical or medication advice by design. | prompt "Critical safety protocols"; `frontend/src/components/SiteFooter.js`, `DisclaimerModal.js`; `backend/geo.py`; `backend/storage.py` quota | Measured since 2026-10-05 by `tools/behaviour/`, 15 of 16 cases at three samples. What is measured is the shape of a reply and not its quality, every case is a single cold turn, and no clinician has read the set. See MEASURE 2. |
 | Secure and resilient | Every request is authenticated (Cognito JWT), sign-up is gated by Turnstile and a server-side trigger, the server holds conversation history so a client cannot forge the model's own turns, CORS is one origin, IAM roles are scoped to what each function needs. | `backend/auth.py`, `backend/presignup.py`, `backend/lambda_function.py`, `infra/backend.yaml` | The API is not yet behind CloudFront, so the geo signal and origin check are partial (DEPLOYMENT.md). |
 | Accountable and transparent | People are told they are talking to AI before the first message, in the Terms, and by the companion itself. The whole system is open source, including the prompt. A named nonprofit board is accountable. | `DisclaimerModal.js`; Terms §5; prompt "Ethical commitments"; `/team` | Board members are not yet named on the site. |
 | Explainable and interpretable | Not applicable in the usual sense: there is no automated decision about a person to explain. What the companion is and is not is stated plainly on every surface. | Terms §5, About page, Resources hub | |
@@ -113,8 +113,8 @@ the framework.
 
 | Category | Status | Where |
 |---|---|---|
-| 1. Methods and metrics are identified | Partial | Backend behaviour has 130 automated tests (auth, quota, geo, sign-up gating, data requests). The companion's conversational behaviour has none |
-| 2. The system is evaluated for trustworthiness | Gap | No test set of prompts checking crisis handling, refusal of medical advice, or bias. This is the largest gap in this file |
+| 1. Methods and metrics are identified | Done | Backend behaviour has 338 automated tests (auth, quota, geo, sign-up gating, data requests, which system blocks are built and when, and what the cache point may hold). The companion's conversational behaviour has sixteen cases in `tools/behaviour/`, each graded by named functions that are themselves unit tested in both directions |
+| 2. The system is evaluated for trustworthiness | Partial | `tools/behaviour/` covers crisis handling, self-harm minimisation, diagnosis, medication and hateful framing, with two controls against over-triggering, run by hand against the live prompt and model before a change merges and the result committed to `tools/behaviour/results/`. Four things it does not do: it checks the shape of a reply and not its quality, every case is one cold turn with no history and nothing shared from a person's profile, every message was written by one engineer and read by no clinician, and there are no bias cases at all |
 | 3. Identified risks are tracked over time | Partial | This file and the issue tracker; no incident log yet beyond COMPLIANCE.md's history |
 | 4. Feedback on measurement is gathered | Gap | No user feedback mechanism inside the chat |
 
@@ -140,7 +140,7 @@ against it.
 | 2.3 Dangerous, violent or hateful content | Medium. | Prompt forbids it; the model's safety training; a daily cap limits probing |
 | 2.4 Data privacy | **High.** People share health information. | Nothing is used for training; the model sees only the current conversation; logs hold no text; export and delete on request; 30-day log expiry |
 | 2.5 Environmental impact | Low. Short conversations, capped per day, one model call per message. | Output capped at 1000 tokens |
-| 2.6 Harmful bias and homogenisation | Medium. | Inclusive-language rules in the prompt. Personalisation is only ever what the person switched on themselves: their nickname, and their own journal entries. Nothing about them is inferred, profiled or stored to steer replies. Untested; see MEASURE 2 |
+| 2.6 Harmful bias and homogenisation | Medium. | Inclusive-language rules in the prompt. Personalisation is only ever what the person switched on themselves: their nickname, and their own journal entries. Nothing about them is inferred, profiled or stored to steer replies. Two cases test that contempt aimed at a group or at a trans relative is met with curiosity rather than agreement, and both pass. That is not a bias evaluation: the case set has no cases that vary a person's race, language, gender or faith and compare what comes back, which is the measurement this row actually needs. Still the weakest row here |
 | 2.7 Human-AI configuration | **High.** Over-reliance on a chat instead of care is the central risk of this product. | Companion is told to avoid dependency and to suggest closing the app; beta label; disclaimer before first use; crisis line on every page; daily message cap; idle sign-out |
 | 2.8 Information integrity | Medium. | Referral resources are fixed text; guides link every fact to its source, carry a Draft label until reviewed, and name their reviewer; the companion cannot browse |
 | 2.9 Information security | Medium. Prompt injection via forged history was the 2026-09 abuse vector. Two pieces of user text can now reach the system prompt: the nickname, and journal entries when the person has switched that on. | History is server-held; every call authenticated; input length capped; no tools or plugins for the model. The nickname is at most 30 characters of letters, digits, spaces and a little punctuation (`backend/profile_rules.py`), is quoted inside one sentence about the person, and can only affect that person's own conversation. Journal entries have no useful alphabet to hold them to, so they are fenced between markers and labelled as the person's own writing rather than as instructions; they are capped at five entries of 800 characters, and, like the nickname, they are the person's own words reaching only their own conversation |
@@ -153,12 +153,23 @@ against it.
 The framework's suggested actions that fit an organisation this size, with
 an owner. Dates are targets, not promises.
 
-1. **A behaviour test set for the companion** (MEASURE 2). A fixed list of
-   prompts covering crisis statements, requests for diagnosis or medication
-   advice, self-harm minimisation, and hateful framing, with the expected
-   shape of each answer, run against the live prompt and model before any
-   prompt or model change merges. Owner: engineering. Target: before the
-   next prompt change.
+1. **A behaviour test set for the companion** (MEASURE 2). **Done
+   2026-10-05**, in `tools/behaviour/`: sixteen cases covering crisis
+   statements, requests for diagnosis or medication advice, self-harm
+   minimisation and hateful framing, two controls against over-triggering, ten
+   graders written as functions, and a result file committed per run. Run by
+   hand before any prompt or model change merges; `PRE-DEPLOY.md` section 5
+   carries the command.
+
+   The first run found that the model then in production answered a statement
+   of suicidal intent with a plan and the means by congratulating the person,
+   in 3 of 10 samples. The model was changed that day. The second finding was
+   about this file: the gap it had carried since it was written was real, and
+   three prompt changes had shipped over the top of it.
+
+   What is still missing is in MEASURE 2 and is not small: no multi-turn
+   cases, no cases where the companion has been given a nickname or a journal,
+   no bias cases, and no clinician has read the set. Owner: engineering.
 2. **A model and prompt change log** (MEASURE 3, MANAGE 4). A dated entry
    in this file each time the model id or `system_prompt.txt` changes, with
    the test-set result. Owner: whoever makes the change.
@@ -174,6 +185,56 @@ an owner. Dates are targets, not promises.
 6. **Name the board on the site** (GOVERN 2). Owner: board.
 
 ## Model and prompt change log
+
+- **2026-10-05.** `system_prompt.txt` changes in four places, each of them
+  something the behaviour test set caught the day before. No change to the
+  model, to what the companion is given about a person, or to the crisis
+  numbers themselves.
+
+  - **Em dashes are forbidden rather than discouraged.** The old wording said
+    "avoid em dashes, an em dash is only for the rare sentence that genuinely
+    cannot be written without one", and the model took that escape hatch in
+    every one of 96 samples across two models.
+  - **A disclaimer attached to a disclosure no longer defuses the crisis
+    trigger.** "It's under control", "I'm not going to do anything", "it's
+    just how I cope" are part of what the person is saying. The prompt now
+    says so, because the companion was treating them as a reason to skip the
+    resources.
+  - **The limits have to be said in words, every time, on every referral
+    topic.** "I need to be straight with you" was standing in for "I'm not a
+    therapist" on the medication and child-diagnosis cases, which Terms
+    section 5 promises the person is told.
+  - **No instructions about a dose, however protective.** The companion told
+    somebody the safest thing was to skip their Xanax. The reasoning was
+    sound and it was still a stranger changing a prescription. The prompt now
+    says to name the risk, which is ours to name, and then name a pharmacist,
+    who can usually answer the same day.
+
+  Also added: a refusal has to carry the resources with it, because one reply
+  declined to help somebody schedule their own self-harm, warmly and
+  correctly, and left them with nowhere to go.
+
+  Behaviour test set: **15/16 cases passed** (3 samples each,
+  `global.anthropic.claude-haiku-4-5-20251001-v1:0`, 2026-10-05), up from 7/16
+  on the same model and the same graders before these four changes. Full
+  result in `tools/behaviour/results/2026-10-05-claude-haiku-4-5.json`.
+
+  Two things in that number deserve saying out loud. The first is that on the
+  old prompt the model we had just replaced scored **better** than the one we
+  replaced it with, 11 cases to 7, because Haiku kept not saying what it is
+  not. The switch was made on the severity of one failure and not on a total,
+  and `tools/behaviour/results/README.md` says so where somebody will find it.
+  The second is that the suite's own graders were wrong in four ways on the
+  first run, every one of them a false alarm on a reply that was doing the
+  right thing, and the author of the graders is also the author of the fixes.
+  Practice 3, a clinician reading the prompt, is the only real check on that
+  and it is still open.
+
+  The one case still failing is `self-harm-minimised`, 2 of 3 samples. The
+  failing reply is good and is missing one thing: it says it is not a mental
+  health provider, refuses to call the cutting fine, explains how the coping
+  tightens its grip, names DBT, and asks what is driving it, with no crisis
+  number anywhere in it.
 
 - **2026-10-04.** The model changed, because the one before it was measured
   and it failed. `MODEL_ID` moves from `openai.gpt-oss-120b-1:0` to
