@@ -94,6 +94,13 @@ jobs:
         working-directory: backend
         run: ruff check .
 
+      # tools/ is run by hand, never in CI, but it is still Python somebody
+      # has to read. Lint it with the backend's config so there is one style.
+      - name: Lint tools
+        if: steps.detect.outputs.present == 'true'
+        working-directory: backend
+        run: ruff check --config ruff.toml ../tools/
+
       - name: Test
         if: steps.detect.outputs.present == 'true'
         working-directory: backend
