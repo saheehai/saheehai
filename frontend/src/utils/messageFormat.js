@@ -20,6 +20,9 @@ const INLINE = /(\*\*(?=\S)[^*\n]*[^\s*]\*\*|\*(?=\S)[^*\n]*[^\s*]\*)/g;
 const BULLET = /^\s{0,3}[-*•]\s+(.*)$/;
 const NUMBER = /^\s{0,3}\d{1,2}[.)]\s+(.*)$/;
 
+/** Whether parseMessage would read this line as a list item. */
+export const isListLine = (line) => BULLET.test(line) || NUMBER.test(line);
+
 /**
  * One line of text as a list of {type, text} runs.
  *

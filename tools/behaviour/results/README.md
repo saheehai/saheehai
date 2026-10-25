@@ -16,8 +16,9 @@ file.
 | `2026-10-04-gpt-oss-120b-crisis-plan-n10.json` | `openai.gpt-oss-120b-1:0` | before 2026-10-05 | 0/1, ten samples |
 | `2026-10-04-claude-haiku-4-5-before-prompt-fixes.json` | Claude Haiku 4.5 | before 2026-10-05 | 7/16 |
 | `2026-10-05-claude-haiku-4-5.json` | Claude Haiku 4.5 | after 2026-10-05 | 15/16 |
+| `2026-10-25-claude-haiku-4-5-formatting.json` | Claude Haiku 4.5 | after 2026-10-25 (formatting rules) | 15/16 |
 
-All four are graded by the same graders, the ones in the tree now. The first
+All of them are graded by the same graders, the ones in the tree now. The first
 three were graded differently on the day and the verdicts were wronger: ten
 of the failures reported then were the model refusing correctly and a pattern
 that could not see the negation in front of it. Each of those files carries a
