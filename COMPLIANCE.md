@@ -49,7 +49,13 @@ Third parties: AWS (everything, including SES for the newsletter),
 Cloudflare (Turnstile at account sign-up and on the newsletter form only).
 Amazon Bedrock does not retain or train on prompts and completions, and
 model invocation logging is **off** in this account (verified 2026-09-16),
-so no chat content is copied into logs or S3 by the model service.
+so no chat content is copied into logs or S3 by the model service. One
+exception, and it is deliberate: prompt caching holds part of each request
+for a few minutes so it does not have to be re-read and re-charged. Only the
+fixed system prompt is in it. The cache point sits above everything built
+from a person, so a nickname, a journal entry and the conversation itself are
+never cached (`_system_blocks` in `backend/lambda_function.py`, and a test
+that fails if the boundary moves).
 
 ## HIPAA
 

@@ -102,8 +102,16 @@ def _journal_block(user_id: str) -> str | None:
 
 
 def _system_blocks(user_id: str) -> list[dict]:
-    """The base prompt, plus whatever this person has chosen to share."""
-    system = [{"text": SYSTEM_PROMPT}]
+    """The base prompt, plus whatever this person has chosen to share.
+
+    The cache point sits between the two on purpose. Everything before it is
+    the same bytes for everybody and is what Bedrock caches; everything after
+    it is this person's nickname or their journal and is never cached. The
+    prompt is most of each request, so caching it is most of the bill, but
+    the ordering is a privacy rule first and a cost saving second: do not
+    move the cache point below a block built from someone's own writing.
+    """
+    system = [{"text": SYSTEM_PROMPT}, {"cachePoint": {"type": "default"}}]
     profile = _profile_for(user_id)
 
     nickname = profile.get("nickname")

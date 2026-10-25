@@ -47,6 +47,22 @@ def body_of(response):
     return json.loads(response["body"])
 
 
+CACHE_POINT = {"cachePoint": {"type": "default"}}
+
+
+def shared(system):
+    """The system blocks built from this person, and only those.
+
+    Everything the companion is told about somebody sits after the cache
+    point, so these tests drop the fixed prompt and the cache point and
+    assert on the rest. That the boundary is in that order is itself the
+    privacy rule, and it has its own test below.
+    """
+    assert system[0]["text"] == lambda_function.SYSTEM_PROMPT
+    assert system[1] == CACHE_POINT
+    return system[2:]
+
+
 @pytest.fixture
 def no_model(monkeypatch):
     """Stub Bedrock and storage so a chat request can be exercised offline."""
@@ -297,23 +313,22 @@ def test_reply_is_stored_strictly_after_the_message(monkeypatch):
 # --- Nickname in the prompt ------------------------------------------------
 
 
-def test_chat_adds_the_nickname_as_a_second_system_block(no_model, monkeypatch):
+def test_chat_adds_the_nickname_as_its_own_system_block(no_model, monkeypatch):
     monkeypatch.setattr(
         storage,
         "get_profile",
         lambda uid: {"nickname": "Sam", "avatar": None, "share_nickname": True},
     )
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
-    system = no_model["system"]
-    assert len(system) == 2
-    assert system[0]["text"] == lambda_function.SYSTEM_PROMPT
-    assert '"Sam"' in system[1]["text"]
+    blocks = shared(no_model["system"])
+    assert len(blocks) == 1
+    assert '"Sam"' in blocks[0]["text"]
 
 
 def test_chat_prompt_is_unchanged_without_a_nickname(no_model, monkeypatch):
     monkeypatch.setattr(storage, "get_profile", lambda uid: None)
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
-    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+    assert shared(no_model["system"]) == []
 
 
 def test_chat_nickname_comes_from_storage_never_the_request(no_model, monkeypatch):
@@ -321,7 +336,7 @@ def test_chat_nickname_comes_from_storage_never_the_request(no_model, monkeypatc
     lambda_function.lambda_handler(
         event("POST", "/chat", {"message": "hi", "nickname": "Admin"}), None
     )
-    assert len(no_model["system"]) == 1
+    assert shared(no_model["system"]) == []
 
 
 def test_chat_survives_a_profile_store_failure(no_model, monkeypatch):
@@ -343,7 +358,42 @@ def test_chat_leaves_the_nickname_out_when_sharing_is_off(no_model, monkeypatch)
         lambda uid: {"nickname": "Sam", "avatar": None, "share_nickname": False},
     )
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
-    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+    assert shared(no_model["system"]) == []
+
+
+# --- What gets cached ------------------------------------------------------
+
+
+def test_chat_caches_the_fixed_prompt_and_nothing_personal(no_model, monkeypatch):
+    """The cache boundary sits above the nickname and the journal, always.
+
+    Bedrock caches every block before the cache point. The fixed prompt is
+    the same bytes for everybody and is worth caching; a nickname and five
+    journal entries belong to one person and are not. Moving the cache point
+    down would put somebody's own writing in a cache shared across the
+    account, which is why this is a test and not a comment.
+    """
+    monkeypatch.setattr(
+        storage,
+        "get_profile",
+        lambda uid: {"nickname": "Sam", "share_nickname": True, "share_journal": True},
+    )
+    monkeypatch.setattr(
+        storage,
+        "get_journal_entries",
+        lambda user_id, limit: [{"content": "Slept badly again.", "title": "Tuesday"}],
+    )
+
+    lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
+
+    system = no_model["system"]
+    cached = system[: system.index(CACHE_POINT)]
+    assert cached == [{"text": lambda_function.SYSTEM_PROMPT}]
+    assert system.count(CACHE_POINT) == 1
+
+    personal = "".join(block.get("text", "") for block in system[system.index(CACHE_POINT) + 1 :])
+    assert "Sam" in personal
+    assert "Slept badly again." in personal
 
 
 # --- Journal in the prompt -------------------------------------------------
@@ -367,11 +417,11 @@ def test_chat_adds_the_journal_only_when_it_is_switched_on(no_model, monkeypatch
     _sharing_journal(monkeypatch, [{"content": "Slept badly again.", "title": "Tuesday"}])
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
 
-    system = no_model["system"]
-    assert len(system) == 2
-    assert "Slept badly again." in system[1]["text"]
-    assert lambda_function.JOURNAL_START in system[1]["text"]
-    assert lambda_function.JOURNAL_END in system[1]["text"]
+    blocks = shared(no_model["system"])
+    assert len(blocks) == 1
+    assert "Slept badly again." in blocks[0]["text"]
+    assert lambda_function.JOURNAL_START in blocks[0]["text"]
+    assert lambda_function.JOURNAL_END in blocks[0]["text"]
 
 
 def test_chat_never_reads_the_journal_when_sharing_is_off(no_model, monkeypatch):
@@ -383,7 +433,7 @@ def test_chat_never_reads_the_journal_when_sharing_is_off(no_model, monkeypatch)
     monkeypatch.setattr(storage, "get_journal_entries", must_not_be_called)
 
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
-    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+    assert shared(no_model["system"]) == []
 
 
 def test_chat_journal_is_read_for_the_token_subject_only(no_model, monkeypatch):
@@ -405,7 +455,7 @@ def test_chat_journal_sharing_cannot_be_turned_on_by_the_request(no_model, monke
     lambda_function.lambda_handler(
         event("POST", "/chat", {"message": "hi", "share_journal": True}), None
     )
-    assert len(no_model["system"]) == 1
+    assert shared(no_model["system"]) == []
 
 
 def test_chat_journal_entries_are_capped(no_model, monkeypatch):
@@ -415,7 +465,7 @@ def test_chat_journal_entries_are_capped(no_model, monkeypatch):
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
 
     assert seen["limit"] == config.JOURNAL_CONTEXT_ENTRIES
-    text = no_model["system"][1]["text"]
+    text = shared(no_model["system"])[0]["text"]
     body = text.split(lambda_function.JOURNAL_START)[1].split(lambda_function.JOURNAL_END)[0]
     assert body.count("y") == config.JOURNAL_CONTEXT_CHARS
 
@@ -432,10 +482,10 @@ def test_chat_survives_a_journal_read_failure(no_model, monkeypatch):
 
     response = lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
     assert response["statusCode"] == 200
-    assert len(no_model["system"]) == 1
+    assert shared(no_model["system"]) == []
 
 
 def test_chat_adds_no_journal_block_when_there_are_no_entries(no_model, monkeypatch):
     _sharing_journal(monkeypatch, [])
     lambda_function.lambda_handler(event("POST", "/chat", {"message": "hi"}), None)
-    assert no_model["system"] == [{"text": lambda_function.SYSTEM_PROMPT}]
+    assert shared(no_model["system"]) == []
